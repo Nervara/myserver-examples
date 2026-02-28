@@ -3,18 +3,100 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>S3 Static Landing Page</title>
+    <title>S3 Static | myserver</title>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;600;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .container { text-align: center; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); padding: 3rem; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.2); }
-        h1 { font-size: 3rem; margin-bottom: 1rem; }
-        p { font-size: 1.2rem; opacity: 0.9; }
+        :root {
+            --bg: #050505;
+            --text: #ffffff;
+            --accent: #22d3ee;
+        }
+        body {
+            font-family: 'Lexend', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        .orbit-container {
+            position: relative;
+            width: 500px;
+            height: 500px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .center-content {
+            text-align: center;
+            z-index: 10;
+        }
+        h1 {
+            font-size: 4rem;
+            font-weight: 900;
+            margin: 0;
+            background: linear-gradient(to right, #22d3ee, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        p {
+            color: #666;
+            font-size: 1.1rem;
+            margin-top: 1rem;
+        }
+        .orbit {
+            position: absolute;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+            animation: rotate var(--duration) linear infinite;
+        }
+        .orbit-1 { width: 300px; height: 300px; --duration: 20s; }
+        .orbit-2 { width: 450px; height: 450px; --duration: 35s; }
+        .orbit-3 { width: 600px; height: 600px; --duration: 50s; }
+        
+        .satellite {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            top: 50%;
+            left: -4px;
+            box-shadow: 0 0 15px var(--accent);
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .s3-badge {
+            background: rgba(34, 211, 238, 0.1);
+            color: var(--accent);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            border: 1px solid rgba(34, 211, 238, 0.2);
+            margin-bottom: 2rem;
+            display: inline-block;
+        }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Welcome to myserver</h1>
-        <p>This page is hosted on Garage S3 and proxied via Caddy.</p>
+    <div class="orbit-container">
+        <div class="orbit orbit-1"><div class="satellite"></div></div>
+        <div class="orbit orbit-2"><div class="satellite" style="background: #818cf8; box-shadow: 0 0 15px #818cf8;"></div></div>
+        <div class="orbit orbit-3"><div class="satellite" style="background: #f472b6; box-shadow: 0 0 15px #f472b6;"></div></div>
+        
+        <div class="center-content">
+            <div class="s3-badge">S3 STATIC HOSTING</div>
+            <h1>Garage S3</h1>
+            <p>Cloud-native object storage serving<br>static assets through Caddy.</p>
+        </div>
     </div>
 </body>
 </html>
