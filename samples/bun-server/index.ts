@@ -7,110 +7,191 @@ const server = Bun.serve({
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bun on myserver</title>
+    <title>Bun on myserver | V2 Playful</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #fbf7ff;
-            --accent: #ff00ff;
-            --bg: #050505;
-            --card-bg: #111111;
-            --text: #ffffff;
-            --text-muted: #888888;
+            --bg-color: #fce4ec; /* Light pink background */
+            --card-color: #ffffff;
+            --text-main: #4a4a4a;
+            --text-light: #8e8e8e;
+            --bun-pink: #f472b6;
+            --bun-yellow: #fde047;
+            --bun-blue: #38bdf8;
         }
+
         body {
-            font-family: 'Space Grotesk', sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
+            font-family: 'Fredoka', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
             margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background-image: 
-                radial-gradient(circle at 20% 20%, rgba(255, 0, 255, 0.05) 0%, transparent 25%),
-                radial-gradient(circle at 80% 80%, rgba(0, 255, 255, 0.05) 0%, transparent 25%);
-        }
-        .container {
-            width: 100%;
-            max-width: 600px;
-            padding: 2rem;
-        }
-        .card {
-            background-color: var(--card-bg);
-            border: 1px solid #222;
-            border-radius: 24px;
-            padding: 4rem;
+            overflow: hidden;
             position: relative;
-            box-shadow: 0 40px 100px -30px rgba(0, 0, 0, 0.9);
+        }
+
+        /* Soft Neomorphic Card */
+        .card {
+            background: var(--card-color);
+            border-radius: 40px;
+            padding: 4rem 3rem;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 
+                20px 20px 60px #d6c2c9,
+                -20px -20px 60px #ffffff;
+            position: relative;
+            z-index: 10;
             text-align: center;
+            animation: float 6s ease-in-out infinite;
         }
-        .logo {
-            font-size: 4rem;
-            margin-bottom: 2rem;
+
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(1deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
         }
+
+        .hero-icon {
+            font-size: 6rem;
+            margin-bottom: 1rem;
+            position: relative;
+            display: inline-block;
+        }
+        .hero-icon::after {
+            content: '';
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            height: 15px;
+            background: rgba(0,0,0,0.1);
+            border-radius: 50%;
+            filter: blur(5px);
+            animation: shadow-pulse 6s ease-in-out infinite;
+        }
+
+        @keyframes shadow-pulse {
+            0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.1; }
+            50% { transform: translateX(-50%) scale(0.8); opacity: 0.05; }
+        }
+
         h1 {
             font-weight: 700;
             font-size: 3.5rem;
-            margin: 0 0 1rem 0;
-            letter-spacing: -0.04em;
-            background: linear-gradient(to bottom, #fff, #888);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            margin: 0;
+            color: #333;
+            letter-spacing: -1px;
         }
-        p {
-            color: var(--text-muted);
+        
+        .subtitle {
             font-size: 1.25rem;
-            line-height: 1.5;
+            color: var(--text-light);
             margin-bottom: 3rem;
-            font-weight: 300;
+            font-weight: 400;
+            line-height: 1.4;
         }
-        .meta {
+
+        .badges-container {
             display: flex;
-            flex-direction: column;
+            flex-wrap: wrap;
             gap: 1rem;
-            align-items: center;
+            justify-content: center;
         }
-        .meta-pill {
-            background: #1a1a1a;
-            border: 1px solid #333;
-            padding: 0.75rem 1.5rem;
-            border-radius: 12px;
+
+        .badge {
+            background: #f8f9fa;
+            border-radius: 20px;
+            padding: 0.8rem 1.5rem;
             font-size: 1rem;
-            color: #ccc;
-            width: fit-content;
+            font-weight: 500;
+            box-shadow: 
+                inset 5px 5px 10px #e6e7e8,
+                inset -5px -5px 10px #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+            cursor: default;
         }
-        .meta-pill b {
-            color: var(--accent);
-            margin-right: 0.5rem;
+
+        .badge:hover {
+            transform: scale(1.1) rotate(-3deg);
+            z-index: 2;
         }
-        .footer-tag {
-            margin-top: 4rem;
-            font-size: 0.8rem;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-            color: #444;
+
+        .badge.pink { color: var(--bun-pink); }
+        .badge.blue { color: var(--bun-blue); }
+        .badge.yellow { color: #d97706; } /* Darker yellow text for contrast */
+
+        .particle {
+            position: absolute;
+            font-size: 2rem;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.6;
+            animation: drift var(--duration) linear infinite;
         }
+
+        @keyframes drift {
+            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
+            10% { opacity: 0.6; }
+            90% { opacity: 0.6; }
+            100% { transform: translateY(-20vh) rotate(360deg); opacity: 0; }
+        }
+
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="card">
-            <div class="logo">🥬</div>
-            <h1>Bun</h1>
-            <p>Next-generation JavaScript runtime, package manager, and bundler on myserver.</p>
-            
-            <div class="meta">
-                <div class="meta-pill"><b>Version</b> ${Bun.version}</div>
-                <div class="meta-pill"><b>Platform</b> ${process.platform}</div>
-                <div class="meta-pill"><b>Arch</b> ${process.arch}</div>
+    
+    <!-- Floating particles -->
+    <div class="particle" style="left: 10%; --duration: 15s; font-size: 3rem;">⚡️</div>
+    <div class="particle" style="left: 25%; --duration: 22s; font-size: 1.5rem;">🥟</div>
+    <div class="particle" style="left: 40%; --duration: 18s; font-size: 2.5rem; animation-delay: 2s;">💨</div>
+    <div class="particle" style="left: 65%; --duration: 25s; font-size: 2rem; animation-delay: 5s;">🚀</div>
+    <div class="particle" style="left: 85%; --duration: 19s; font-size: 4rem; animation-delay: 1s;">📦</div>
+    <div class="particle" style="left: 95%; --duration: 28s; font-size: 1rem; animation-delay: 8s;">⚡️</div>
+
+    <div class="card">
+        <div class="hero-icon">🥟</div>
+        <h1>Bun</h1>
+        <div class="subtitle">Insanely fast JavaScript runtime<br>deployed simply on myserver.</div>
+        
+        <div class="badges-container">
+            <div class="badge pink">
+                <span>⚡️</span> v${Bun.version}
             </div>
-            
-            <div class="footer-tag">Optimized by Nixpacks</div>
+            <div class="badge blue">
+                <span>💻</span> ${process.platform}
+            </div>
+            <div class="badge yellow">
+                <span>⚙️</span> ${process.arch}
+            </div>
+        </div>
+        
+        <div style="margin-top: 3rem; font-size: 0.9rem; color: #a1a1aa; font-weight: 500;">
+            Powered by Nixpacks Magic ✨
         </div>
     </div>
+
+    <script>
+        // Interactive bouncy click effect on card
+        const card = document.querySelector('.card');
+        card.addEventListener('mousedown', () => {
+            card.style.transform = 'scale(0.95)';
+            card.style.transition = 'transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        });
+        window.addEventListener('mouseup', () => {
+            card.style.transform = '';
+            card.style.transition = 'transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        });
+    </script>
 </body>
 </html>
     `;

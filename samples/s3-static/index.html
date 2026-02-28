@@ -3,100 +3,229 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>S3 Static | myserver</title>
-    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;600;900&display=swap" rel="stylesheet">
+    <title>S3 Static | myserver V2 Cosmic</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #050505;
-            --text: #ffffff;
-            --accent: #22d3ee;
+            --bg-deep: #030014;
+            --purple-glow: #7c3aed;
+            --blue-glow: #2563eb;
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
         }
+
         body {
-            font-family: 'Lexend', sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
+            font-family: 'Space Grotesk', sans-serif;
             margin: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
             overflow: hidden;
+            background-color: var(--bg-deep);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1000px;
         }
-        .orbit-container {
+
+        /* Starfield Background */
+        #starfield {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .star {
+            position: absolute;
+            background: #fff;
+            border-radius: 50%;
+            animation: twinkle var(--duration) ease-in-out infinite alternate;
+        }
+
+        @keyframes twinkle {
+            0% { opacity: 0.2; transform: scale(0.8); }
+            100% { opacity: 1; transform: scale(1.2); box-shadow: 0 0 10px #fff; }
+        }
+
+        /* Cosmic Core (Center Black Hole / Nebula) */
+        .cosmic-core {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(124, 58, 237, 0.15) 0%, rgba(37, 99, 235, 0.05) 50%, transparent 70%);
+            border-radius: 50%;
+            z-index: 1;
+            animation: pulse-core 8s ease-in-out infinite alternate;
+            pointer-events: none;
+        }
+
+        @keyframes pulse-core {
+            0% { transform: translate(-50%, -50%) scale(1); opacity: 0.8; }
+            100% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; }
+        }
+
+        .content-container {
             position: relative;
+            z-index: 10;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            background: rgba(3, 0, 20, 0.4);
+            border: 1px solid rgba(255,255,255,0.05);
+            padding: 4rem;
+            border-radius: 50%;
             width: 500px;
             height: 500px;
             display: flex;
-            align-items: center;
+            flex-direction: column;
             justify-content: center;
+            align-items: center;
+            box-shadow: 
+                0 0 40px rgba(124, 58, 237, 0.2),
+                inset 0 0 40px rgba(37, 99, 235, 0.2);
+            animation: float 10s ease-in-out infinite;
         }
-        .center-content {
-            text-align: center;
-            z-index: 10;
+
+        @keyframes float {
+            0% { transform: translateY(0px) rotateX(5deg) rotateY(-5deg); }
+            50% { transform: translateY(-20px) rotateX(-5deg) rotateY(5deg); }
+            100% { transform: translateY(0px) rotateX(5deg) rotateY(-5deg); }
         }
-        h1 {
-            font-size: 4rem;
-            font-weight: 900;
-            margin: 0;
-            background: linear-gradient(to right, #22d3ee, #818cf8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        p {
-            color: #666;
-            font-size: 1.1rem;
-            margin-top: 1rem;
-        }
-        .orbit {
-            position: absolute;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 50%;
-            animation: rotate var(--duration) linear infinite;
-        }
-        .orbit-1 { width: 300px; height: 300px; --duration: 20s; }
-        .orbit-2 { width: 450px; height: 450px; --duration: 35s; }
-        .orbit-3 { width: 600px; height: 600px; --duration: 50s; }
-        
-        .satellite {
-            position: absolute;
-            width: 8px;
-            height: 8px;
-            background: var(--accent);
-            border-radius: 50%;
-            top: 50%;
-            left: -4px;
-            box-shadow: 0 0 15px var(--accent);
-        }
-        
-        @keyframes rotate {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        
-        .s3-badge {
-            background: rgba(34, 211, 238, 0.1);
-            color: var(--accent);
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
+
+        .badge {
+            background: linear-gradient(90deg, rgba(124, 58, 237, 0.2), rgba(37, 99, 235, 0.2));
+            color: #d8b4fe;
+            padding: 8px 16px;
+            border-radius: 99px;
             font-size: 0.8rem;
             font-weight: 700;
-            border: 1px solid rgba(34, 211, 238, 0.2);
+            letter-spacing: 2px;
+            border: 1px solid rgba(124, 58, 237, 0.3);
             margin-bottom: 2rem;
-            display: inline-block;
+            text-transform: uppercase;
+            box-shadow: 0 0 15px rgba(124, 58, 237, 0.4);
         }
+
+        h1 {
+            font-size: 4rem;
+            font-weight: 700;
+            margin: 0;
+            background: linear-gradient(to bottom right, #ffffff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -2px;
+            line-height: 1.1;
+        }
+
+        p {
+            color: var(--text-dim);
+            font-size: 1.1rem;
+            margin-top: 1.5rem;
+            line-height: 1.6;
+            max-width: 80%;
+        }
+
+        /* Orbital Rings */
+        .ring {
+            position: absolute;
+            top: 50%; left: 50%;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.05);
+            transform: translate(-50%, -50%) rotateX(70deg);
+            transform-style: preserve-3d;
+            pointer-events: none;
+        }
+
+        .ring-1 { width: 800px; height: 800px; animation: spin-3d 30s linear infinite; }
+        .ring-2 { width: 1100px; height: 1100px; animation: spin-3d 45s linear infinite reverse; border-color: rgba(37, 99, 235, 0.1); }
+        
+        @keyframes spin-3d { 100% { transform: translate(-50%, -50%) rotateX(70deg) rotateZ(360deg); } }
+
+        .satellite {
+            position: absolute;
+            top: 0; left: 50%;
+            width: 15px; height: 15px;
+            background: #fff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%) rotateX(-70deg); /* Counter-rotate to face camera */
+            box-shadow: 0 0 20px #fff, 0 0 40px var(--purple-glow);
+        }
+        .ring-2 .satellite {
+            top: 50%; left: 0;
+            background: #60a5fa;
+            box-shadow: 0 0 20px #60a5fa, 0 0 40px var(--blue-glow);
+        }
+
     </style>
 </head>
 <body>
-    <div class="orbit-container">
-        <div class="orbit orbit-1"><div class="satellite"></div></div>
-        <div class="orbit orbit-2"><div class="satellite" style="background: #818cf8; box-shadow: 0 0 15px #818cf8;"></div></div>
-        <div class="orbit orbit-3"><div class="satellite" style="background: #f472b6; box-shadow: 0 0 15px #f472b6;"></div></div>
+    <div id="starfield"></div>
+    
+    <div class="ring ring-1"><div class="satellite"></div></div>
+    <div class="ring ring-2"><div class="satellite"></div></div>
+    
+    <div class="cosmic-core"></div>
+
+    <div class="content-container">
+        <div class="badge">S3 Gateway</div>
+        <h1>Cosmic<br>Storage</h1>
+        <p>Infinite scale object storage served blazing fast to the edge.</p>
         
-        <div class="center-content">
-            <div class="s3-badge">S3 STATIC HOSTING</div>
-            <h1>Garage S3</h1>
-            <p>Cloud-native object storage serving<br>static assets through Caddy.</p>
+        <div style="margin-top: 3rem; display: flex; gap: 1rem;">
+            <div style="text-align: center;">
+                <div style="font-size: 1.5rem; font-weight: 700; color: #fff;">11 9s</div>
+                <div style="font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase;">Durability</div>
+            </div>
+            <div style="width: 1px; background: rgba(255,255,255,0.1);"></div>
+            <div style="text-align: center;">
+                <div style="font-size: 1.5rem; font-weight: 700; color: #fff;">&lt;50ms</div>
+                <div style="font-size: 0.7rem; color: var(--text-dim); text-transform: uppercase;">Latency</div>
+            </div>
         </div>
     </div>
+
+    <script>
+        // Generate Starfield
+        const starfield = document.getElementById('starfield');
+        for (let i = 0; i < 200; i++) {
+            const star = document.createElement('div');
+            star.classList.add('star');
+            
+            // Randomize properties
+            const size = Math.random() * 3 + 1;
+            const x = Math.random() * 100;
+            const y = Math.random() * 100;
+            const duration = Math.random() * 3 + 2;
+            const delay = Math.random() * 5;
+
+            star.style.width = \`\${size}px\`;
+            star.style.height = \`\${size}px\`;
+            star.style.left = \`\${x}%\`;
+            star.style.top = \`\${y}%\`;
+            star.style.setProperty('--duration', \`\${duration}s\`);
+            star.style.animationDelay = \`\${delay}s\`;
+
+            // Give some stars a slight blue/purple tint
+            if (Math.random() > 0.8) {
+                star.style.background = '#d8b4fe';
+                star.style.boxShadow = '0 0 10px #d8b4fe';
+            } else if (Math.random() > 0.8) {
+                star.style.background = '#93c5fd';
+                star.style.boxShadow = '0 0 10px #93c5fd';
+            }
+
+            starfield.appendChild(star);
+        }
+
+        // Mouse Parallax Effect
+        document.addEventListener('mousemove', (e) => {
+            const x = (e.clientX / window.innerWidth - 0.5) * 20;
+            const y = (e.clientY / window.innerHeight - 0.5) * 20;
+            
+            starfield.style.transform = \`translate(\${-x}px, \${-y}px)\`;
+            document.querySelector('.content-container').style.transform = \`translateY(0px) rotateX(\${y/2}deg) rotateY(\${x/2}deg)\`;
+        });
+    </script>
 </body>
 </html>
