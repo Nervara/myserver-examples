@@ -296,7 +296,7 @@ func getTenantHandler(w http.ResponseWriter, r *http.Request) {
 
 	var resp TenantResponse
 	err := pool.QueryRow(ctx,
-		`SELECT tenant_id, name, config, created_at FROM tenants WHERE tenant_id = $1 `, id,
+		`SELECT tenant_id, name, config, created_at FROM tenants WHERE tenant_id = $1`, id,
 	).Scan(&resp.TenantID, &resp.Name, &resp.Config, &resp.CreatedAt)
 	if err == pgx.ErrNoRows {
 		writeError(w, http.StatusNotFound, "tenant not found")
