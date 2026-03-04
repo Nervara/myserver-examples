@@ -86,16 +86,29 @@ type FacilityMetrics struct {
 
 func main() {
 	connStr := os.Getenv("DATABASE_URL")
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	version, buildTime := buildVersionInfo()
+	deployID, deployCommit := deploymentMetadata()
+	log.Printf("startup: booting go-database sample")
+	log.Printf("startup: version=%s build_time=%s deployment_id=%d deployment_commit=%q", version, buildTime, deployID, deployCommit)
+	log.Printf("startup: listen_addr=:%s", port)
+	log.Printf("startup: DATABASE_URL_present=%t DATABASE_URL_masked=%s", connStr != "", maskDatabaseURL(connStr))
+
 	if connStr == "" {
-		log.Fatal("DATABASE_URL is not set")
+		log.Fatal("startup: DATABASE_URL is not set; cannot start HTTP server")
 	}
 
 	var err error
-	pool, err = pgxpool.New(context.Background(), connStr)
+	pool, err = connectPoolWithRetry(connStr, 10, 3*time.Second)
 	if err != nil {
-		log.Fatalf("Failed to create connection pool: %v", err)
+		log.Fatalf("startup: failed to initialize database pool after retries: %v", err)
 	}
 	defer pool.Close()
+	log.Printf("startup: database connection ready")
 
 	mux := http.NewServeMux()
 
@@ -124,12 +137,14 @@ func main() {
 	// Legacy all-in-one
 	mux.HandleFunc("GET /run", runHandler)
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	srv := &http.Server{
+		Addr:              ":" + port,
+		Handler:           mux,
+		ReadHeaderTimeout: 10 * time.Second,
 	}
 	fmt.Printf("Server listening on :%s\n", port)
-	log.Fatal(http.ListenAndServe(":"+port, mux))
+	log.Printf("startup: HTTP server starting")
+	log.Fatal(srv.ListenAndServe())
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -148,6 +163,52 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 
 func decode(r *http.Request, dst any) error {
 	return json.NewDecoder(r.Body).Decode(dst)
+}
+
+func connectPoolWithRetry(connStr string, attempts int, delay time.Duration) (*pgxpool.Pool, error) {
+	var lastErr error
+	for i := 1; i <= attempts; i++ {
+		pool, err := pgxpool.New(context.Background(), connStr)
+		if err != nil {
+			lastErr = fmt.Errorf("pgxpool.New: %w", err)
+			log.Printf("startup: db connect attempt %d/%d failed: %v", i, attempts, lastErr)
+		} else {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			err = pool.Ping(ctx)
+			cancel()
+			if err == nil {
+				return pool, nil
+			}
+			pool.Close()
+			lastErr = fmt.Errorf("db ping: %w", err)
+			log.Printf("startup: db ping attempt %d/%d failed: %v", i, attempts, lastErr)
+		}
+
+		if i < attempts {
+			time.Sleep(delay)
+		}
+	}
+
+	return nil, lastErr
+}
+
+func maskDatabaseURL(raw string) string {
+	if strings.TrimSpace(raw) == "" {
+		return "<empty>"
+	}
+
+	// Keep host/db visible while redacting credentials.
+	if at := strings.Index(raw, "@"); at > 0 {
+		if scheme := strings.Index(raw, "://"); scheme >= 0 {
+			prefix := raw[:scheme+3]
+			rest := raw[scheme+3:]
+			if at2 := strings.Index(rest, "@"); at2 > 0 {
+				return prefix + "***:***" + rest[at2:]
+			}
+		}
+	}
+
+	return "<redacted>"
 }
 
 // getOrCreateTenantByName inserts a tenant when absent and returns the existing

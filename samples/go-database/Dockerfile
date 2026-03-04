@@ -13,5 +13,6 @@ WORKDIR /root/
 COPY --from=builder /app/server .
 
 ENV DATABASE_URL=""
+EXPOSE 8080
 
 CMD ["./server"]
