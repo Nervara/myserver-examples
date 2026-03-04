@@ -145,6 +145,52 @@ func decode(r *http.Request, dst any) error {
 	return json.NewDecoder(r.Body).Decode(dst)
 }
 
+// getOrCreateTenantByName inserts a tenant when absent and returns the existing
+// tenant when the name already exists. It also refreshes config on existing rows.
+func getOrCreateTenantByName(ctx context.Context, name string, configJSON string) (TenantResponse, bool, error) {
+	var resp TenantResponse
+
+	// Handle all unique constraints without coupling to a specific index/column.
+	err := pool.QueryRow(ctx, `
+		INSERT INTO tenants (name, config)
+		VALUES ($1, $2)
+		ON CONFLICT DO NOTHING
+		RETURNING tenant_id, name, config, created_at
+	`, name, configJSON).Scan(&resp.TenantID, &resp.Name, &resp.Config, &resp.CreatedAt)
+	if err == nil {
+		return resp, true, nil
+	}
+	if err != pgx.ErrNoRows {
+		return TenantResponse{}, false, err
+	}
+
+	// Row already exists: keep API behavior by updating config and returning it.
+	err = pool.QueryRow(ctx, `
+		UPDATE tenants
+		SET config = $2
+		WHERE name = $1
+		RETURNING tenant_id, name, config, created_at
+	`, name, configJSON).Scan(&resp.TenantID, &resp.Name, &resp.Config, &resp.CreatedAt)
+	if err == nil {
+		return resp, false, nil
+	}
+	if err != pgx.ErrNoRows {
+		return TenantResponse{}, false, err
+	}
+
+	// Race-safe fallback: fetch existing row if another writer updated first.
+	err = pool.QueryRow(ctx, `
+		SELECT tenant_id, name, config, created_at
+		FROM tenants
+		WHERE name = $1
+	`, name).Scan(&resp.TenantID, &resp.Name, &resp.Config, &resp.CreatedAt)
+	if err != nil {
+		return TenantResponse{}, false, err
+	}
+
+	return resp, false, nil
+}
+
 // setRLS runs set_config so Row Level Security policies see the correct tenant.
 func setRLS(ctx context.Context, tx pgx.Tx, tenantID string) error {
 	_, err := tx.Exec(ctx, "SELECT set_config('app.current_tenant', $1, true)", tenantID)
@@ -174,19 +220,17 @@ func createTenantHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	configJSON, _ := json.Marshal(req.Config)
 
-	var resp TenantResponse
-	err := pool.QueryRow(ctx, `
-		INSERT INTO tenants (name, config)
-		VALUES ($1, $2)
-		ON CONFLICT (name) DO UPDATE SET config = EXCLUDED.config
-		RETURNING tenant_id, name, config, created_at
-	`, req.Name, string(configJSON)).Scan(&resp.TenantID, &resp.Name, &resp.Config, &resp.CreatedAt)
+	resp, created, err := getOrCreateTenantByName(ctx, req.Name, string(configJSON))
 	if err != nil {
 		log.Printf("createTenant: %v", err)
 		writeError(w, http.StatusInternalServerError, "failed to create tenant")
 		return
 	}
-	writeJSON(w, http.StatusCreated, resp)
+	status := http.StatusOK
+	if created {
+		status = http.StatusCreated
+	}
+	writeJSON(w, status, resp)
 }
 
 // GET /tenants/{id}
@@ -473,17 +517,12 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	results := map[string]any{}
 
-	var tenantID string
-	err := pool.QueryRow(ctx, `
-		INSERT INTO tenants (name, config)
-		VALUES ($1, $2)
-		ON CONFLICT (name) DO UPDATE SET config = EXCLUDED.config
-		RETURNING tenant_id
-	`, "Alpha Logistics", `{"region": "eu-west-1"}`).Scan(&tenantID)
+	tenantResp, _, err := getOrCreateTenantByName(ctx, "Alpha Logistics", `{"region": "eu-west-1"}`)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, fmt.Sprintf("tenant: %v", err))
 		return
 	}
+	tenantID := tenantResp.TenantID
 	results["tenant_id"] = tenantID
 
 	tx, err := pool.Begin(ctx)
