@@ -25,7 +25,7 @@ var pool *pgxpool.Pool
 var autoDeployProbe string
 
 var (
-	appStartedAt = time.Now().UTC().Format(time.RFC3339)
+	appStartedAt  = time.Now().UTC().Format(time.RFC3339)
 	deployCounter = countProbeLines(autoDeployProbe)
 )
 
@@ -213,10 +213,10 @@ func setRLS(ctx context.Context, tx pgx.Tx, tenantID string) error {
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	version, buildTime := buildVersionInfo()
 	writeJSON(w, http.StatusOK, map[string]any{
-		"status":      "ok",
-		"version":     version,
-		"build_time":  buildTime,
-		"app_started": appStartedAt,
+		"status":         "ok",
+		"version":        version,
+		"build_time":     buildTime,
+		"app_started":    appStartedAt,
 		"deploy_counter": deployCounter,
 	})
 }
@@ -296,7 +296,7 @@ func getTenantHandler(w http.ResponseWriter, r *http.Request) {
 
 	var resp TenantResponse
 	err := pool.QueryRow(ctx,
-		`SELECT tenant_id, name, config, created_at FROM tenants WHERE tenant_id = $1`, id,
+		`SELECT tenant_id, name, config, created_at FROM tenants WHERE tenant_id = $1 `, id,
 	).Scan(&resp.TenantID, &resp.Name, &resp.Config, &resp.CreatedAt)
 	if err == pgx.ErrNoRows {
 		writeError(w, http.StatusNotFound, "tenant not found")
