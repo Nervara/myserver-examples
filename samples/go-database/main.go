@@ -207,6 +207,7 @@ func setRLS(ctx context.Context, tx pgx.Tx, tenantID string) error {
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	version, buildTime := buildVersionInfo()
 	deployID, deployCommit := deploymentMetadata()
+	log.Printf("health check: remote=%s method=%s path=%s version=%s build_time=%s deployment_id=%d deployment_commit=%q", r.RemoteAddr, r.Method, r.URL.Path, version, buildTime, deployID, deployCommit)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"status":            "ok",
 		"version":           version,
