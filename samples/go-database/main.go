@@ -8,6 +8,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -200,7 +202,41 @@ func setRLS(ctx context.Context, tx pgx.Tx, tenantID string) error {
 // ── Handlers ──────────────────────────────────────────────────────────────────
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+	version, buildTime := buildVersionInfo()
+	writeJSON(w, http.StatusOK, map[string]any{
+		"status":      "ok",
+		"version":     version,
+		"build_time":  buildTime,
+		"deployed_at": time.Now().UTC().Format(time.RFC3339),
+	})
+}
+
+func buildVersionInfo() (string, string) {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return "unknown", ""
+	}
+
+	version := "unknown"
+	buildTime := ""
+	for _, s := range info.Settings {
+		switch s.Key {
+		case "vcs.revision":
+			if len(s.Value) >= 8 {
+				version = s.Value[:8]
+			} else if s.Value != "" {
+				version = s.Value
+			}
+		case "vcs.time":
+			buildTime = s.Value
+		}
+	}
+
+	if version == "unknown" && strings.TrimSpace(info.Main.Version) != "" && info.Main.Version != "(devel)" {
+		version = info.Main.Version
+	}
+
+	return version, buildTime
 }
 
 // POST /tenants
