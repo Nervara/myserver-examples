@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -19,6 +20,14 @@ import (
 // ── Global pool ───────────────────────────────────────────────────────────────
 
 var pool *pgxpool.Pool
+
+//go:embed AUTODEPLOY_PROBE.txt
+var autoDeployProbe string
+
+var (
+	appStartedAt = time.Now().UTC().Format(time.RFC3339)
+	deployCounter = countProbeLines(autoDeployProbe)
+)
 
 // ── Request / response types ──────────────────────────────────────────────────
 
@@ -207,8 +216,19 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 		"status":      "ok",
 		"version":     version,
 		"build_time":  buildTime,
-		"deployed_at": time.Now().UTC().Format(time.RFC3339),
+		"app_started": appStartedAt,
+		"deploy_counter": deployCounter,
 	})
+}
+
+func countProbeLines(content string) int {
+	count := 0
+	for _, line := range strings.Split(content, "\n") {
+		if strings.TrimSpace(line) != "" {
+			count++
+		}
+	}
+	return count
 }
 
 func buildVersionInfo() (string, string) {
