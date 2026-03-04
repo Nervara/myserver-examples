@@ -3,13 +3,13 @@ package main
 
 import (
 	"context"
-	_ "embed"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,13 +21,7 @@ import (
 
 var pool *pgxpool.Pool
 
-//go:embed AUTODEPLOY_PROBE.txt
-var autoDeployProbe string
-
-var (
-	appStartedAt  = time.Now().UTC().Format(time.RFC3339)
-	deployCounter = countProbeLines(autoDeployProbe)
-)
+var appStartedAt = time.Now().UTC().Format(time.RFC3339)
 
 // ── Request / response types ──────────────────────────────────────────────────
 
@@ -212,23 +206,36 @@ func setRLS(ctx context.Context, tx pgx.Tx, tenantID string) error {
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	version, buildTime := buildVersionInfo()
+	deployID, deployCommit := deploymentMetadata()
 	writeJSON(w, http.StatusOK, map[string]any{
-		"status":         "ok",
-		"version":        version,
-		"build_time":     buildTime,
-		"app_started":    appStartedAt,
-		"deploy_counter": deployCounter,
+		"status":            "ok",
+		"version":           version,
+		"build_time":        buildTime,
+		"app_started":       appStartedAt,
+		"deploy_counter":    deployID,
+		"deployment_id":     deployID,
+		"deployment_commit": deployCommit,
 	})
 }
 
-func countProbeLines(content string) int {
-	count := 0
-	for _, line := range strings.Split(content, "\n") {
-		if strings.TrimSpace(line) != "" {
-			count++
+func deploymentMetadata() (int64, string) {
+	deploymentID := int64(0)
+	rawID := strings.TrimSpace(os.Getenv("MYSERVER_INTERNAL_DEPLOYMENT_ID"))
+	if rawID == "" {
+		rawID = strings.TrimSpace(os.Getenv("MYSERVER_DEPLOYMENT_ID"))
+	}
+	if rawID != "" {
+		if parsed, err := strconv.ParseInt(rawID, 10, 64); err == nil {
+			deploymentID = parsed
 		}
 	}
-	return count
+
+	deployCommit := strings.TrimSpace(os.Getenv("MYSERVER_INTERNAL_DEPLOYMENT_COMMIT"))
+	if deployCommit == "" {
+		deployCommit = strings.TrimSpace(os.Getenv("MYSERVER_DEPLOYMENT_COMMIT"))
+	}
+
+	return deploymentID, deployCommit
 }
 
 func buildVersionInfo() (string, string) {
