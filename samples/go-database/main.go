@@ -11,6 +11,7 @@ import (
 	"runtime/debug"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -22,6 +23,8 @@ import (
 var pool *pgxpool.Pool
 
 var appStartedAt = time.Now().UTC().Format(time.RFC3339)
+var dbReady atomic.Bool
+var dbInitErr string
 
 // ── Request / response types ──────────────────────────────────────────────────
 
@@ -86,6 +89,7 @@ type FacilityMetrics struct {
 
 func main() {
 	connStr := os.Getenv("DATABASE_URL")
+	startWithoutDB := envBool("START_WITHOUT_DB")
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -97,18 +101,29 @@ func main() {
 	log.Printf("startup: version=%s build_time=%s deployment_id=%d deployment_commit=%q", version, buildTime, deployID, deployCommit)
 	log.Printf("startup: listen_addr=:%s", port)
 	log.Printf("startup: DATABASE_URL_present=%t DATABASE_URL_masked=%s", connStr != "", maskDatabaseURL(connStr))
+	log.Printf("startup: START_WITHOUT_DB=%t", startWithoutDB)
 
-	if connStr == "" {
-		log.Fatal("startup: DATABASE_URL is not set; cannot start HTTP server")
+	if strings.TrimSpace(connStr) == "" {
+		dbInitErr = "DATABASE_URL is not set"
+		if !startWithoutDB {
+			log.Fatal("startup: DATABASE_URL is not set; cannot start HTTP server")
+		}
+		log.Printf("startup: proceeding without DB (%s)", dbInitErr)
+	} else {
+		var err error
+		pool, err = connectPoolWithRetry(connStr, 10, 3*time.Second)
+		if err != nil {
+			dbInitErr = err.Error()
+			if !startWithoutDB {
+				log.Fatalf("startup: failed to initialize database pool after retries: %v", err)
+			}
+			log.Printf("startup: proceeding without DB (connect failed): %v", err)
+		} else {
+			dbReady.Store(true)
+			defer pool.Close()
+			log.Printf("startup: database connection ready")
+		}
 	}
-
-	var err error
-	pool, err = connectPoolWithRetry(connStr, 10, 3*time.Second)
-	if err != nil {
-		log.Fatalf("startup: failed to initialize database pool after retries: %v", err)
-	}
-	defer pool.Close()
-	log.Printf("startup: database connection ready")
 
 	mux := http.NewServeMux()
 
@@ -136,10 +151,11 @@ func main() {
 
 	// Legacy all-in-one
 	mux.HandleFunc("GET /run", runHandler)
+	muxWithDBGate := withDBGate(mux)
 
 	srv := &http.Server{
 		Addr:              ":" + port,
-		Handler:           mux,
+		Handler:           muxWithDBGate,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	fmt.Printf("Server listening on :%s\n", port)
@@ -163,6 +179,29 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 
 func decode(r *http.Request, dst any) error {
 	return json.NewDecoder(r.Body).Decode(dst)
+}
+
+func envBool(name string) bool {
+	v := strings.TrimSpace(strings.ToLower(os.Getenv(name)))
+	return v == "1" || v == "true" || v == "yes" || v == "on"
+}
+
+func withDBGate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if dbReady.Load() || r.URL.Path == "/health" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		reason := "database not ready"
+		if strings.TrimSpace(dbInitErr) != "" {
+			reason = dbInitErr
+		}
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{
+			"error":   "database unavailable",
+			"details": reason,
+		})
+	})
 }
 
 func connectPoolWithRetry(connStr string, attempts int, delay time.Duration) (*pgxpool.Pool, error) {
@@ -271,6 +310,8 @@ func healthHandler(w http.ResponseWriter, r *http.Request) {
 	log.Printf("health check: remote=%s method=%s path=%s version=%s build_time=%s deployment_id=%d deployment_commit=%q", r.RemoteAddr, r.Method, r.URL.Path, version, buildTime, deployID, deployCommit)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"status":            "ok",
+		"db_ready":          dbReady.Load(),
+		"db_init_error":      dbInitErr,
 		"version":           version,
 		"build_time":        buildTime,
 		"app_started":       appStartedAt,
