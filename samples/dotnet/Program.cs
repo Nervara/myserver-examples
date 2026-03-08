@@ -40,6 +40,11 @@ app.MapGet("/health", () => Results.Ok(new {
     uptime = (DateTime.UtcNow - System.Diagnostics.Process.GetCurrentProcess().StartTime.ToUniversalTime()).ToString()
 }));
 
+var logger = app.Logger;
+logger.LogInformation("Starting dotnet sample app on port {Port}", port);
+logger.LogInformation("Environment: {Env}", app.Environment.EnvironmentName);
+logger.LogInformation("Health endpoint: http://0.0.0.0:{Port}/health", port);
+
 app.Run();
 
 record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
