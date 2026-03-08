@@ -1,7 +1,9 @@
 using StackExchange.Redis;
 
 var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
-var redisUrl = Environment.GetEnvironmentVariable("REDIS_URL") ?? "redis://localhost:6379";
+var redisHost = Environment.GetEnvironmentVariable("REDIS_HOST") ?? "localhost";
+var redisPort = int.Parse(Environment.GetEnvironmentVariable("REDIS_PORT") ?? "6379");
+var redisPassword = Environment.GetEnvironmentVariable("REDIS_PASSWORD") ?? "";
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
@@ -10,7 +12,12 @@ builder.Services.AddOpenApi();
 // Register Redis connection as singleton
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
 {
-    var options = ConfigurationOptions.Parse(redisUrl);
+    var options = new ConfigurationOptions
+    {
+        EndPoints = { { redisHost, redisPort } },
+        Password = redisPassword,
+        AbortOnConnectFail = false,
+    };
     return ConnectionMultiplexer.Connect(options);
 });
 
@@ -79,7 +86,7 @@ app.MapGet("/weatherforecast", () =>
 var logger = app.Logger;
 logger.LogInformation("Starting dotnet sample app on port {Port}", port);
 logger.LogInformation("Environment: {Env}", app.Environment.EnvironmentName);
-logger.LogInformation("Redis URL: {RedisUrl}", redisUrl);
+logger.LogInformation("Redis: {Host}:{Port}", redisHost, redisPort);
 logger.LogInformation("Endpoints: /health | POST /publish/{{channel}} | GET /subscribe/{{channel}}");
 
 app.Run();
