@@ -40,10 +40,11 @@ app.MapGet("/health", () => Results.Ok(new
     memoryMB = GC.GetTotalMemory(false) / 1024 / 1024,
 }));
 
-// --- Memory leak: GET /leak?mb=1 ---
-app.MapGet("/leak", (int mb, ILogger<Program> log) =>
+// --- Memory leak: GET /leak?mb=10 (mb is optional, defaults to 10) ---
+app.MapGet("/leak", (HttpContext ctx, ILoggerFactory logFactory) =>
 {
-    mb = Math.Clamp(mb, 1, 500);
+    var log = logFactory.CreateLogger("Leak");
+    var mb = int.TryParse(ctx.Request.Query["mb"], out var v) ? Math.Clamp(v, 1, 500) : 10;
     var chunk = new byte[mb * 1024 * 1024];
     Random.Shared.NextBytes(chunk); // prevent compiler optimising it away
     _leak.Add(chunk);
