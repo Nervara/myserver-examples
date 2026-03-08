@@ -28,12 +28,29 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+// --- Intentional memory leak (for observability / load testing) ---
+// Each call to /leak allocates ~1MB into a static list that is never released.
+var _leak = new List<byte[]>();
+
 // --- Health ---
 app.MapGet("/health", () => Results.Ok(new
 {
     status = "healthy",
-    uptime = (DateTime.UtcNow - System.Diagnostics.Process.GetCurrentProcess().StartTime.ToUniversalTime()).ToString()
+    uptime = (DateTime.UtcNow - System.Diagnostics.Process.GetCurrentProcess().StartTime.ToUniversalTime()).ToString(),
+    memoryMB = GC.GetTotalMemory(false) / 1024 / 1024,
 }));
+
+// --- Memory leak: GET /leak?mb=1 ---
+app.MapGet("/leak", (int mb, ILogger<Program> log) =>
+{
+    mb = Math.Clamp(mb, 1, 500);
+    var chunk = new byte[mb * 1024 * 1024];
+    Random.Shared.NextBytes(chunk); // prevent compiler optimising it away
+    _leak.Add(chunk);
+    var totalMB = _leak.Sum(b => b.Length) / 1024 / 1024;
+    log.LogWarning("[LEAK] Allocated {MB}MB — total leaked: {TotalMB}MB (chunks: {Count})", mb, totalMB, _leak.Count);
+    return Results.Ok(new { allocated_mb = mb, total_leaked_mb = totalMB, chunks = _leak.Count });
+}).WithName("MemoryLeak");
 
 // --- Publish: POST /publish/{channel}  body: plain-text message ---
 app.MapPost("/publish/{channel}", async (string channel, HttpRequest request, IConnectionMultiplexer redis, ILogger<Program> log) =>
