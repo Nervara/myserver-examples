@@ -268,6 +268,13 @@ func main() {
 		return c.SendString(html)
 	})
 
+	app.Get("/health", func(c *fiber.Ctx) error {
+		return c.JSON(fiber.Map{
+			"status": "healthy",
+			"uptime": time.Since(startTime).String(),
+		})
+	})
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3000"
