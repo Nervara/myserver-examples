@@ -5,9 +5,9 @@
 set -e
 
 URL="${1:-https://022bc518-dotnet.serverops.cloud}"
-NUM_MESSAGES="${2:-500}"
-NUM_SUBSCRIBERS="${3:-10}"
-CONCURRENCY="${4:-50}"
+NUM_MESSAGES="${2:-5000}"
+NUM_SUBSCRIBERS="${3:-100}"
+CONCURRENCY="${4:-500}"
 CHANNEL="load-test-channel"
 SSE_DIR=$(mktemp -d)
 PIDS=()
@@ -42,14 +42,14 @@ echo ""
 echo "[2/4] Starting $NUM_SUBSCRIBERS subscribers..."
 for i in $(seq 1 "$NUM_SUBSCRIBERS"); do
     OUT="$SSE_DIR/sub_$i.txt"
-    curl -sf --max-time 60 -N "$URL/subscribe/$CHANNEL" > "$OUT" 2>/dev/null &
+    curl -sf --max-time 120 -N "$URL/subscribe/$CHANNEL" > "$OUT" 2>/dev/null &
     PIDS+=($!)
-    echo "  Subscriber $i started (pid ${PIDS[-1]})"
 done
-sleep 3  # give subscribers time to connect
+echo "  All $NUM_SUBSCRIBERS subscribers started. Warming up (6s)..."
+sleep 6  # longer warmup so all SSE connections are established before flood
 echo ""
 
-# --- 3. Publish messages in parallel waves ---
+# --- 3. Publish messages in parallel ---
 echo "[3/4] Publishing $NUM_MESSAGES messages ($CONCURRENCY concurrent)..."
 
 publish_one() {
@@ -57,7 +57,7 @@ publish_one() {
     local url=$2
     local channel=$3
     local resp
-    resp=$(curl -sf --max-time 10 -X POST "$url/publish/$channel" \
+    resp=$(curl -sf --max-time 30 -X POST "$url/publish/$channel" \
         -H "Content-Type: text/plain" \
         -d "LoadTest #$n @ $(date +%T)" 2>/dev/null)
     if echo "$resp" | grep -q '"receivers"'; then
