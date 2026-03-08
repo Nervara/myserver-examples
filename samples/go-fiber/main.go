@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/logger"
 )
 
 var startTime time.Time
@@ -18,6 +19,9 @@ func init() {
 
 func main() {
 	app := fiber.New()
+
+	// Default logger middleware
+	app.Use(logger.New())
 
 	app.Get("/", func(c *fiber.Ctx) error {
 		uptime := time.Since(startTime).Truncate(time.Second).String()
