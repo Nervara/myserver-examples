@@ -223,6 +223,21 @@ func main() {
             margin: 2rem 0;
             width: 100%%;
         }
+
+        .health-btn {
+            color: var(--main-neon);
+            text-decoration: none;
+            border: 1px solid var(--main-neon);
+            padding: 4px 12px;
+            transition: all 0.3s ease;
+            background: rgba(0, 255, 204, 0.05);
+        }
+
+        .health-btn:hover {
+            background: rgba(0, 255, 204, 0.2);
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.4);
+            color: #fff;
+        }
         
     </style>
 </head>
@@ -254,9 +269,9 @@ func main() {
 
             <div class="deco-line"></div>
             
-            <div style="display: flex; justify-content: space-between; font-family: 'Share Tech Mono', monospace; color: #666; font-size: 0.9rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; font-family: 'Share Tech Mono', monospace; color: #666; font-size: 0.9rem;">
                 <span>NET_STATUS: CONNECTED</span>
-                <span>myserver-cluster</span>
+                <a href="/health" class="health-btn" target="_blank">[ /HEALTH ]</a>
             </div>
         </div>
     </div>
