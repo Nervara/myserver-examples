@@ -35,3 +35,7 @@ main
 
 # Docker
 .dockerignore
+
+# .NET
+obj/
+bin/
