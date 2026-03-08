@@ -36,22 +36,30 @@ app.MapGet("/health", () => Results.Ok(new
 }));
 
 // --- Publish: POST /publish/{channel}  body: plain-text message ---
-app.MapPost("/publish/{channel}", async (string channel, HttpRequest request, IConnectionMultiplexer redis) =>
+app.MapPost("/publish/{channel}", async (string channel, HttpRequest request, IConnectionMultiplexer redis, ILogger<Program> log) =>
 {
     using var reader = new StreamReader(request.Body);
     var message = await reader.ReadToEndAsync();
     if (string.IsNullOrWhiteSpace(message))
+    {
+        log.LogWarning("[PUBLISH] [{Channel}] rejected — empty body", channel);
         return Results.BadRequest(new { error = "Request body must contain a message." });
+    }
 
+    log.LogInformation("[PUBLISH] [{Channel}] message='{Message}'", channel, message);
     var sub = redis.GetSubscriber();
     var receivers = await sub.PublishAsync(RedisChannel.Literal(channel), message);
+    log.LogInformation("[PUBLISH] [{Channel}] delivered to {Receivers} subscriber(s)", channel, receivers);
 
     return Results.Ok(new { channel, message, receivers });
 });
 
 // --- Subscribe: GET /subscribe/{channel} — Server-Sent Events stream ---
-app.MapGet("/subscribe/{channel}", async (string channel, HttpContext ctx, IConnectionMultiplexer redis) =>
+app.MapGet("/subscribe/{channel}", async (string channel, HttpContext ctx, IConnectionMultiplexer redis, ILogger<Program> log) =>
 {
+    var clientIp = ctx.Connection.RemoteIpAddress;
+    log.LogInformation("[SUBSCRIBE] [{Channel}] client {Ip} connected", channel, clientIp);
+
     ctx.Response.Headers["Content-Type"] = "text/event-stream";
     ctx.Response.Headers["Cache-Control"] = "no-cache";
     ctx.Response.Headers["X-Accel-Buffering"] = "no";
@@ -59,10 +67,13 @@ app.MapGet("/subscribe/{channel}", async (string channel, HttpContext ctx, IConn
 
     var sub = redis.GetSubscriber();
     var tcs = new TaskCompletionSource();
+    var msgCount = 0;
 
     await sub.SubscribeAsync(RedisChannel.Literal(channel), async (_, value) =>
     {
         if (ctx.RequestAborted.IsCancellationRequested) { tcs.TrySetResult(); return; }
+        msgCount++;
+        log.LogInformation("[SUBSCRIBE] [{Channel}] -> client {Ip} msg #{Count}: '{Value}'", channel, clientIp, msgCount, value);
         await ctx.Response.WriteAsync($"data: {value}\n\n");
         await ctx.Response.Body.FlushAsync();
     });
@@ -70,6 +81,7 @@ app.MapGet("/subscribe/{channel}", async (string channel, HttpContext ctx, IConn
     ctx.RequestAborted.Register(() => tcs.TrySetResult());
     await tcs.Task;
     await sub.UnsubscribeAsync(RedisChannel.Literal(channel));
+    log.LogInformation("[SUBSCRIBE] [{Channel}] client {Ip} disconnected after {Count} messages", channel, clientIp, msgCount);
 });
 
 // --- Weather forecast ---
