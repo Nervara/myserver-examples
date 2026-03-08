@@ -328,8 +328,95 @@ func main() {
         <div class="stat-row"><span>Crew (Routines):</span> <span class="stat-val">%d</span></div>
         <div class="stat-row"><span>Voyage Uptime:</span> <span class="stat-val">%s</span></div>
     </div>
+
+    <!-- Camera label -->
+    <div id="cam-label" style="
+        position: absolute; top: 20px; left: 20px;
+        font-family: 'Pirata One', cursive; font-size: 1.1rem;
+        color: rgba(212,175,55,0.85); z-index: 30;
+        background: rgba(0,0,0,0.5); padding: 4px 14px;
+        border: 1px solid rgba(212,175,55,0.4);
+        text-shadow: 0 0 8px rgba(212,175,55,0.5);
+        transition: opacity 0.5s;
+    "></div>
+
+    <script>
+    // ── Cinematic camera angles ──────────────────────────────────────────
+    const cameras = [
+        {
+            name: "⚓ Harbour Watch",
+            scene: "perspective(900px) rotateX(0deg) rotateY(0deg) rotateZ(0deg)",
+            origin: "50%% 50%%",
+            bgShift: "50%% 50%%",
+            duration: 6000
+        },
+        {
+            name: "🦅 Crow's Nest",
+            scene: "perspective(600px) rotateX(35deg) rotateY(0deg) rotateZ(0deg) translateY(-60px)",
+            origin: "50%% 0%%",
+            bgShift: "50%% 30%%",
+            duration: 7000
+        },
+        {
+            name: "⚔ Broadside",
+            scene: "perspective(800px) rotateX(5deg) rotateY(-25deg) rotateZ(2deg)",
+            origin: "70%% 50%%",
+            bgShift: "60%% 50%%",
+            duration: 6000
+        },
+        {
+            name: "🌊 Wave Level",
+            scene: "perspective(500px) rotateX(-8deg) rotateY(8deg) rotateZ(-3deg) translateY(40px)",
+            origin: "50%% 80%%",
+            bgShift: "50%% 70%%",
+            duration: 7000
+        },
+        {
+            name: "🧭 Bow Chase",
+            scene: "perspective(700px) rotateX(12deg) rotateY(15deg) rotateZ(1deg) translateZ(30px)",
+            origin: "30%% 50%%",
+            bgShift: "40%% 50%%",
+            duration: 6000
+        },
+        {
+            name: "🌀 Storm Roll",
+            scene: "perspective(650px) rotateX(6deg) rotateY(-10deg) rotateZ(-6deg)",
+            origin: "50%% 50%%",
+            bgShift: "50%% 50%%",
+            duration: 5000
+        }
+    ];
+
+    const scene = document.body;
+    const label = document.getElementById('cam-label');
+    let idx = 0;
+
+    function applyCamera(cam) {
+        scene.style.transition = "transform 2.5s cubic-bezier(0.45, 0, 0.55, 1), perspective-origin 2.5s ease, background-position 3s ease";
+        scene.style.transform = cam.scene;
+        scene.style.perspectiveOrigin = cam.origin;
+        scene.style.backgroundPosition = cam.bgShift;
+
+        // update label with fade
+        label.style.opacity = '0';
+        setTimeout(() => {
+            label.textContent = cam.name;
+            label.style.opacity = '1';
+        }, 400);
+    }
+
+    function nextCamera() {
+        applyCamera(cameras[idx]);
+        setTimeout(nextCamera, cameras[idx].duration);
+        idx = (idx + 1) %% cameras.length;
+    }
+
+    // small delay so page renders first
+    setTimeout(nextCamera, 800);
+    </script>
 </body>
 </html>
+
 `, runtime.Version(), runtime.GOOS, runtime.GOARCH, runtime.NumGoroutine(), uptime)
 
 		c.Set(fiber.HeaderContentType, fiber.MIMETextHTML)
