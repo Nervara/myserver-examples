@@ -1,0 +1,5 @@
+{
+    "name": "railpack/php-vanilla",
+    "description": "Vanilla PHP Test for Railpack",
+    "require": {}
+}
