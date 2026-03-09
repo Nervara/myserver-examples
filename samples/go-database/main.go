@@ -106,7 +106,8 @@ func main() {
 	if strings.TrimSpace(connStr) == "" {
 		dbInitErr = "DATABASE_URL is not set"
 		if !startWithoutDB {
-			log.Fatal("startup: DATABASE_URL is not set; cannot start HTTP server")
+			log.Printf("startup: DATABASE_URL is not set; starting in degraded mode (set START_WITHOUT_DB=false to fail hard)")
+			startWithoutDB = true
 		}
 		log.Printf("startup: proceeding without DB (%s)", dbInitErr)
 	} else {
