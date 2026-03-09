@@ -1,6 +1,9 @@
 const server = Bun.serve({
   port: process.env.PORT || 3000,
   fetch(request) {
+    if (new URL(request.url).pathname === '/health') {
+      return new Response('OK');
+    }
     const html = `
 <!DOCTYPE html>
 <html lang="en">
