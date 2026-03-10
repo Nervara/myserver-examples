@@ -1,0 +1,10 @@
+{
+  "name": "bun-sqlite-sample",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "scripts": {
+    "start": "bun run index.ts",
+    "migrate": "bun run migrate.ts"
+  },
+  "dependencies": {}
+}
