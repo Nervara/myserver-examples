@@ -7,7 +7,7 @@ export default async function StatusPage() {
 
   try {
     const versionRes = await query('SELECT version()')
-    const uptimeRes = await query("SELECT date_trunc('second', current_timestamp - pg_postmaster_start_time()) AS uptime FROM pg_stat_activity LIMIT 1")
+    const uptimeRes = await query("SELECT date_trunc('second', current_timestamp - pg_postmaster_start_time())::text AS uptime FROM pg_stat_activity LIMIT 1")
     const countRes = await query('SELECT COUNT(*) FROM notes')
 
     if (versionRes) {
