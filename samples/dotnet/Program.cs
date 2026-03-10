@@ -7,7 +7,6 @@ var redisPassword = Environment.GetEnvironmentVariable("REDIS_PASSWORD") ?? "";
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
-builder.Services.AddOpenApi();
 
 // Register Redis connection as singleton
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
@@ -23,14 +22,16 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
-
 // --- Intentional memory leak (for observability / load testing) ---
 // Each call to /leak allocates ~1MB into a static list that is never released.
 var _leak = new List<byte[]>();
+
+// --- Root ---
+app.MapGet("/", () => Results.Ok(new
+{
+    message = "Hello from .NET on Railpack!",
+    framework = "ASP.NET Core 8.0",
+}));
 
 // --- Health ---
 app.MapGet("/health", () => Results.Ok(new
