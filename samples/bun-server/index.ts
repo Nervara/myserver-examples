@@ -1,207 +1,393 @@
+import pg from "pg";
+import mysql from "mysql2/promise";
+import Redis from "ioredis";
+
+const PORT = process.env.PORT || 3000;
+
+// ── Connection configs from env vars ──────────────────────────────
+// Each database uses the discovery DNS name (e.g. disco-postgres.production.internal)
+// resolved via CoreDNS on the myserver mesh network.
+
+interface DBResult {
+  name: string;
+  type: string;
+  host: string;
+  status: "connected" | "error";
+  latency_ms: number;
+  pool_size?: number;
+  details?: string;
+  error?: string;
+}
+
+// ── PostgreSQL pool ──────────────────────────────────────────────
+const pgPool = process.env.POSTGRES_URL
+  ? new pg.Pool({
+      connectionString: process.env.POSTGRES_URL,
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+    })
+  : null;
+
+async function testPostgres(): Promise<DBResult> {
+  if (!pgPool) return { name: "PostgreSQL", type: "postgresql", host: "-", status: "error", latency_ms: 0, error: "POSTGRES_URL not set" };
+  const start = performance.now();
+  try {
+    const client = await pgPool.connect();
+    const res = await client.query("SELECT version() as version, current_database() as db, current_user as user, pg_postmaster_start_time() as uptime");
+    client.release();
+    return {
+      name: "PostgreSQL",
+      type: "postgresql",
+      host: process.env.POSTGRES_URL?.replace(/\/\/.*@/, "//***@") || "",
+      status: "connected",
+      latency_ms: Math.round(performance.now() - start),
+      pool_size: pgPool.totalCount,
+      details: `${res.rows[0].version.split(",")[0]} | db=${res.rows[0].db} user=${res.rows[0].user}`,
+    };
+  } catch (e: any) {
+    return { name: "PostgreSQL", type: "postgresql", host: process.env.POSTGRES_URL?.replace(/\/\/.*@/, "//***@") || "", status: "error", latency_ms: Math.round(performance.now() - start), error: e.message };
+  }
+}
+
+// ── MySQL pool ───────────────────────────────────────────────────
+const mysqlPool = process.env.MYSQL_URL
+  ? mysql.createPool({
+      uri: process.env.MYSQL_URL,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+      connectTimeout: 5000,
+    })
+  : null;
+
+async function testMySQL(): Promise<DBResult> {
+  if (!mysqlPool) return { name: "MySQL", type: "mysql", host: "-", status: "error", latency_ms: 0, error: "MYSQL_URL not set" };
+  const start = performance.now();
+  try {
+    const [rows] = await mysqlPool.query("SELECT version() as version, database() as db, current_user() as user") as any;
+    return {
+      name: "MySQL",
+      type: "mysql",
+      host: process.env.MYSQL_URL?.replace(/\/\/.*@/, "//***@") || "",
+      status: "connected",
+      latency_ms: Math.round(performance.now() - start),
+      pool_size: 10,
+      details: `MySQL ${rows[0].version} | db=${rows[0].db} user=${rows[0].user}`,
+    };
+  } catch (e: any) {
+    return { name: "MySQL", type: "mysql", host: process.env.MYSQL_URL?.replace(/\/\/.*@/, "//***@") || "", status: "error", latency_ms: Math.round(performance.now() - start), error: e.message };
+  }
+}
+
+// ── MariaDB pool ─────────────────────────────────────────────────
+const mariaPool = process.env.MARIADB_URL
+  ? mysql.createPool({
+      uri: process.env.MARIADB_URL,
+      waitForConnections: true,
+      connectionLimit: 10,
+      queueLimit: 0,
+      connectTimeout: 5000,
+    })
+  : null;
+
+async function testMariaDB(): Promise<DBResult> {
+  if (!mariaPool) return { name: "MariaDB", type: "mariadb", host: "-", status: "error", latency_ms: 0, error: "MARIADB_URL not set" };
+  const start = performance.now();
+  try {
+    const [rows] = await mariaPool.query("SELECT version() as version, database() as db, current_user() as user") as any;
+    return {
+      name: "MariaDB",
+      type: "mariadb",
+      host: process.env.MARIADB_URL?.replace(/\/\/.*@/, "//***@") || "",
+      status: "connected",
+      latency_ms: Math.round(performance.now() - start),
+      pool_size: 10,
+      details: `MariaDB ${rows[0].version} | db=${rows[0].db} user=${rows[0].user}`,
+    };
+  } catch (e: any) {
+    return { name: "MariaDB", type: "mariadb", host: process.env.MARIADB_URL?.replace(/\/\/.*@/, "//***@") || "", status: "error", latency_ms: Math.round(performance.now() - start), error: e.message };
+  }
+}
+
+// ── Redis pool ───────────────────────────────────────────────────
+const redisClient = process.env.REDIS_URL
+  ? new Redis(process.env.REDIS_URL, {
+      maxRetriesPerRequest: 1,
+      connectTimeout: 5000,
+      lazyConnect: true,
+    })
+  : null;
+
+async function testRedis(): Promise<DBResult> {
+  if (!redisClient) return { name: "Redis", type: "redis", host: "-", status: "error", latency_ms: 0, error: "REDIS_URL not set" };
+  const start = performance.now();
+  try {
+    if (redisClient.status === "wait") await redisClient.connect();
+    const info = await redisClient.info("server");
+    const version = info.match(/redis_version:(.+)/)?.[1]?.trim() || "unknown";
+    const mode = info.match(/redis_mode:(.+)/)?.[1]?.trim() || "unknown";
+    const uptime = info.match(/uptime_in_seconds:(.+)/)?.[1]?.trim() || "0";
+
+    // Quick SET/GET roundtrip
+    const key = `disco:ping:${Date.now()}`;
+    await redisClient.set(key, "pong", "EX", 10);
+    await redisClient.get(key);
+    await redisClient.del(key);
+
+    return {
+      name: "Redis",
+      type: "redis",
+      host: process.env.REDIS_URL?.replace(/:.*@/, ":***@") || "",
+      status: "connected",
+      latency_ms: Math.round(performance.now() - start),
+      details: `Redis ${version} | mode=${mode} uptime=${uptime}s`,
+    };
+  } catch (e: any) {
+    return { name: "Redis", type: "redis", host: process.env.REDIS_URL?.replace(/:.*@/, ":***@") || "", status: "error", latency_ms: Math.round(performance.now() - start), error: e.message };
+  }
+}
+
+// ── Latency benchmark ────────────────────────────────────────────
+interface BenchResult {
+  name: string;
+  iterations: number;
+  avg_ms: number;
+  min_ms: number;
+  max_ms: number;
+  p99_ms: number;
+}
+
+async function benchmarkPostgres(n: number): Promise<BenchResult | null> {
+  if (!pgPool) return null;
+  const times: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const s = performance.now();
+    const c = await pgPool.connect();
+    await c.query("SELECT 1");
+    c.release();
+    times.push(performance.now() - s);
+  }
+  times.sort((a, b) => a - b);
+  return { name: "PostgreSQL", iterations: n, avg_ms: round(avg(times)), min_ms: round(times[0]), max_ms: round(times[n - 1]), p99_ms: round(times[Math.floor(n * 0.99)]) };
+}
+
+async function benchmarkMySQL(n: number): Promise<BenchResult | null> {
+  if (!mysqlPool) return null;
+  const times: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const s = performance.now();
+    await mysqlPool.query("SELECT 1");
+    times.push(performance.now() - s);
+  }
+  times.sort((a, b) => a - b);
+  return { name: "MySQL", iterations: n, avg_ms: round(avg(times)), min_ms: round(times[0]), max_ms: round(times[n - 1]), p99_ms: round(times[Math.floor(n * 0.99)]) };
+}
+
+async function benchmarkMariaDB(n: number): Promise<BenchResult | null> {
+  if (!mariaPool) return null;
+  const times: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const s = performance.now();
+    await mariaPool.query("SELECT 1");
+    times.push(performance.now() - s);
+  }
+  times.sort((a, b) => a - b);
+  return { name: "MariaDB", iterations: n, avg_ms: round(avg(times)), min_ms: round(times[0]), max_ms: round(times[n - 1]), p99_ms: round(times[Math.floor(n * 0.99)]) };
+}
+
+async function benchmarkRedis(n: number): Promise<BenchResult | null> {
+  if (!redisClient || redisClient.status === "wait") return null;
+  const times: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const s = performance.now();
+    await redisClient.ping();
+    times.push(performance.now() - s);
+  }
+  times.sort((a, b) => a - b);
+  return { name: "Redis", iterations: n, avg_ms: round(avg(times)), min_ms: round(times[0]), max_ms: round(times[n - 1]), p99_ms: round(times[Math.floor(n * 0.99)]) };
+}
+
+function avg(arr: number[]) { return arr.reduce((a, b) => a + b, 0) / arr.length; }
+function round(n: number) { return Math.round(n * 10) / 10; }
+
+// ── HTTP server ──────────────────────────────────────────────────
 const server = Bun.serve({
-  port: process.env.PORT || 3000,
-  fetch(request) {
-    if (new URL(request.url).pathname === '/health') {
-      return new Response('OK');
+  port: PORT,
+  async fetch(request) {
+    const url = new URL(request.url);
+
+    if (url.pathname === "/health") {
+      return new Response("OK");
     }
-    const html = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bun on myserver | V2 Playful</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-color: #fce4ec; /* Light pink background */
-            --card-color: #ffffff;
-            --text-main: #4a4a4a;
-            --text-light: #8e8e8e;
-            --bun-pink: #f472b6;
-            --bun-yellow: #fde047;
-            --bun-blue: #38bdf8;
-        }
 
-        body {
-            font-family: 'Fredoka', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            overflow: hidden;
-            position: relative;
-        }
+    // API: connectivity test
+    if (url.pathname === "/api/test") {
+      const results = await Promise.all([testPostgres(), testMySQL(), testMariaDB(), testRedis()]);
+      return Response.json({
+        timestamp: new Date().toISOString(),
+        runtime: `Bun ${Bun.version}`,
+        server: { platform: process.platform, arch: process.arch, pid: process.pid },
+        databases: results,
+        summary: {
+          total: results.length,
+          connected: results.filter(r => r.status === "connected").length,
+          errors: results.filter(r => r.status === "error").length,
+        },
+      });
+    }
 
-        /* Soft Neomorphic Card */
-        .card {
-            background: var(--card-color);
-            border-radius: 40px;
-            padding: 4rem 3rem;
-            width: 100%;
-            max-width: 500px;
-            box-shadow: 
-                20px 20px 60px #d6c2c9,
-                -20px -20px 60px #ffffff;
-            position: relative;
-            z-index: 10;
-            text-align: center;
-            animation: float 6s ease-in-out infinite;
-        }
+    // API: latency benchmark
+    if (url.pathname === "/api/bench") {
+      const n = parseInt(url.searchParams.get("n") || "50");
+      const iterations = Math.min(Math.max(n, 10), 500);
+      const results = (await Promise.all([
+        benchmarkPostgres(iterations),
+        benchmarkMySQL(iterations),
+        benchmarkMariaDB(iterations),
+        benchmarkRedis(iterations),
+      ])).filter(Boolean);
+      return Response.json({
+        timestamp: new Date().toISOString(),
+        iterations,
+        note: "All queries use connection pools — measures pooled query latency, not connection setup",
+        benchmarks: results,
+      });
+    }
 
-        @keyframes float {
-            0% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-15px) rotate(1deg); }
-            100% { transform: translateY(0px) rotate(0deg); }
-        }
-
-        .hero-icon {
-            font-size: 6rem;
-            margin-bottom: 1rem;
-            position: relative;
-            display: inline-block;
-        }
-        .hero-icon::after {
-            content: '';
-            position: absolute;
-            bottom: -20px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 80%;
-            height: 15px;
-            background: rgba(0,0,0,0.1);
-            border-radius: 50%;
-            filter: blur(5px);
-            animation: shadow-pulse 6s ease-in-out infinite;
-        }
-
-        @keyframes shadow-pulse {
-            0%, 100% { transform: translateX(-50%) scale(1); opacity: 0.1; }
-            50% { transform: translateX(-50%) scale(0.8); opacity: 0.05; }
-        }
-
-        h1 {
-            font-weight: 700;
-            font-size: 3.5rem;
-            margin: 0;
-            color: #333;
-            letter-spacing: -1px;
-        }
-        
-        .subtitle {
-            font-size: 1.25rem;
-            color: var(--text-light);
-            margin-bottom: 3rem;
-            font-weight: 400;
-            line-height: 1.4;
-        }
-
-        .badges-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 1rem;
-            justify-content: center;
-        }
-
-        .badge {
-            background: #f8f9fa;
-            border-radius: 20px;
-            padding: 0.8rem 1.5rem;
-            font-size: 1rem;
-            font-weight: 500;
-            box-shadow: 
-                inset 5px 5px 10px #e6e7e8,
-                inset -5px -5px 10px #ffffff;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-            cursor: default;
-        }
-
-        .badge:hover {
-            transform: scale(1.1) rotate(-3deg);
-            z-index: 2;
-        }
-
-        .badge.pink { color: var(--bun-pink); }
-        .badge.blue { color: var(--bun-blue); }
-        .badge.yellow { color: #d97706; } /* Darker yellow text for contrast */
-
-        .particle {
-            position: absolute;
-            font-size: 2rem;
-            pointer-events: none;
-            z-index: 1;
-            opacity: 0.6;
-            animation: drift var(--duration) linear infinite;
-        }
-
-        @keyframes drift {
-            0% { transform: translateY(100vh) rotate(0deg); opacity: 0; }
-            10% { opacity: 0.6; }
-            90% { opacity: 0.6; }
-            100% { transform: translateY(-20vh) rotate(360deg); opacity: 0; }
-        }
-
-    </style>
-</head>
-<body>
-    
-    <!-- Floating particles -->
-    <div class="particle" style="left: 10%; --duration: 15s; font-size: 3rem;">⚡️</div>
-    <div class="particle" style="left: 25%; --duration: 22s; font-size: 1.5rem;">🥟</div>
-    <div class="particle" style="left: 40%; --duration: 18s; font-size: 2.5rem; animation-delay: 2s;">💨</div>
-    <div class="particle" style="left: 65%; --duration: 25s; font-size: 2rem; animation-delay: 5s;">🚀</div>
-    <div class="particle" style="left: 85%; --duration: 19s; font-size: 4rem; animation-delay: 1s;">📦</div>
-    <div class="particle" style="left: 95%; --duration: 28s; font-size: 1rem; animation-delay: 8s;">⚡️</div>
-
-    <div class="card">
-        <div class="hero-icon">🥟</div>
-        <h1>Bun</h1>
-        <div class="subtitle">Insanely fast JavaScript runtime<br>deployed simply on myserver.</div>
-        
-        <div class="badges-container">
-            <div class="badge pink">
-                <span>⚡️</span> v${Bun.version}
-            </div>
-            <div class="badge blue">
-                <span>💻</span> ${process.platform}
-            </div>
-            <div class="badge yellow">
-                <span>⚙️</span> ${process.arch}
-            </div>
-        </div>
-        
-        <div style="margin-top: 3rem; font-size: 0.9rem; color: #a1a1aa; font-weight: 500;">
-            Powered by Nixpacks Magic ✨
-        </div>
-    </div>
-
-    <script>
-        // Interactive bouncy click effect on card
-        const card = document.querySelector('.card');
-        card.addEventListener('mousedown', () => {
-            card.style.transform = 'scale(0.95)';
-            card.style.transition = 'transform 0.1s cubic-bezier(0.34, 1.56, 0.64, 1)';
-        });
-        window.addEventListener('mouseup', () => {
-            card.style.transform = '';
-            card.style.transition = 'transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
-        });
-    </script>
-</body>
-</html>
-    `;
-    return new Response(html, {
-      headers: { "Content-Type": "text/html" }
-    });
+    // Dashboard UI
+    return new Response(renderDashboard(), { headers: { "Content-Type": "text/html" } });
   },
 });
 
-console.log(`Listening on http://localhost:${server.port}...`);
+function renderDashboard(): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Discovery Showcase | myserver</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; }
+    .container { max-width: 1000px; margin: 0 auto; padding: 2rem; }
+    h1 { font-size: 2rem; font-weight: 700; margin-bottom: 0.5rem; }
+    h1 span { background: linear-gradient(135deg, #38bdf8, #818cf8, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .subtitle { color: #94a3b8; margin-bottom: 2rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+    .card { background: #1e293b; border-radius: 12px; padding: 1.25rem; border: 1px solid #334155; transition: border-color 0.2s; }
+    .card.ok { border-color: #22c55e; }
+    .card.err { border-color: #ef4444; }
+    .card .icon { font-size: 2rem; margin-bottom: 0.5rem; }
+    .card .name { font-weight: 600; font-size: 1.1rem; margin-bottom: 0.25rem; }
+    .card .status { font-size: 0.8rem; padding: 2px 8px; border-radius: 9999px; display: inline-block; margin-bottom: 0.5rem; }
+    .card .status.ok { background: #052e16; color: #4ade80; }
+    .card .status.err { background: #450a0a; color: #fca5a5; }
+    .card .meta { font-size: 0.75rem; color: #64748b; line-height: 1.6; }
+    .card .latency { font-size: 1.5rem; font-weight: 700; color: #38bdf8; }
+    .bench { background: #1e293b; border-radius: 12px; padding: 1.5rem; border: 1px solid #334155; margin-bottom: 2rem; }
+    .bench h2 { font-size: 1.2rem; margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; color: #94a3b8; font-size: 0.75rem; text-transform: uppercase; padding: 0.5rem; border-bottom: 1px solid #334155; }
+    td { padding: 0.5rem; border-bottom: 1px solid #1e293b; font-variant-numeric: tabular-nums; }
+    .bar-cell { position: relative; }
+    .bar { height: 20px; background: linear-gradient(90deg, #38bdf8, #818cf8); border-radius: 4px; min-width: 2px; transition: width 0.5s; }
+    button { background: #334155; color: #e2e8f0; border: 1px solid #475569; border-radius: 8px; padding: 0.6rem 1.2rem; cursor: pointer; font-size: 0.9rem; transition: background 0.2s; }
+    button:hover { background: #475569; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .actions { display: flex; gap: 1rem; margin-bottom: 2rem; }
+    .footer { text-align: center; color: #475569; font-size: 0.8rem; margin-top: 2rem; }
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #475569; border-top-color: #38bdf8; border-radius: 50%; animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1><span>Service Discovery</span> Showcase</h1>
+    <p class="subtitle">Bun ${Bun.version} connecting to databases via myserver mesh discovery (CoreDNS)</p>
+
+    <div class="actions">
+      <button onclick="runTest()" id="testBtn">Test Connections</button>
+      <button onclick="runBench()" id="benchBtn">Run Benchmark (50 iterations)</button>
+      <button onclick="runBench(200)" id="benchBtn200">Benchmark (200)</button>
+    </div>
+
+    <div id="cards" class="grid"></div>
+    <div id="benchSection" class="bench" style="display:none">
+      <h2>Connection Pool Benchmark</h2>
+      <table>
+        <thead><tr><th>Database</th><th>Avg</th><th>Min</th><th>Max</th><th>P99</th><th style="width:40%">Distribution</th></tr></thead>
+        <tbody id="benchBody"></tbody>
+      </table>
+    </div>
+    <div class="footer">Powered by myserver internal service discovery</div>
+  </div>
+
+  <script>
+    const icons = { postgresql: "&#x1f418;", mysql: "&#x1f42c;", mariadb: "&#x1f9ad;", redis: "&#x26a1;" };
+    const labels = { postgresql: "PostgreSQL", mysql: "MySQL", mariadb: "MariaDB", redis: "Redis" };
+
+    async function runTest() {
+      const btn = document.getElementById("testBtn");
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Testing...';
+      try {
+        const res = await fetch("/api/test");
+        const data = await res.json();
+        const container = document.getElementById("cards");
+        container.innerHTML = data.databases.map(db => \`
+          <div class="card \${db.status === "connected" ? "ok" : "err"}">
+            <div class="icon">\${icons[db.type] || "&#x1f4be;"}</div>
+            <div class="name">\${db.name}</div>
+            <div class="status \${db.status === "connected" ? "ok" : "err"}">\${db.status}</div>
+            <div class="latency">\${db.latency_ms}ms</div>
+            <div class="meta">
+              \${db.details ? db.details + "<br>" : ""}
+              \${db.pool_size ? "pool: " + db.pool_size + "<br>" : ""}
+              \${db.host ? db.host : ""}
+              \${db.error ? '<br><span style="color:#fca5a5">' + db.error + '</span>' : ""}
+            </div>
+          </div>
+        \`).join("");
+      } catch (e) {
+        document.getElementById("cards").innerHTML = '<div class="card err">Error: ' + e.message + '</div>';
+      }
+      btn.disabled = false;
+      btn.textContent = "Test Connections";
+    }
+
+    async function runBench(n = 50) {
+      const btn = document.getElementById(n > 50 ? "benchBtn200" : "benchBtn");
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Running...';
+      try {
+        const res = await fetch("/api/bench?n=" + n);
+        const data = await res.json();
+        const section = document.getElementById("benchSection");
+        section.style.display = "block";
+        const maxMs = Math.max(...data.benchmarks.map(b => b.max_ms), 1);
+        document.getElementById("benchBody").innerHTML = data.benchmarks.map(b => \`
+          <tr>
+            <td>\${icons[b.name.toLowerCase()] || ""} \${b.name}</td>
+            <td><strong>\${b.avg_ms}ms</strong></td>
+            <td>\${b.min_ms}ms</td>
+            <td>\${b.max_ms}ms</td>
+            <td>\${b.p99_ms}ms</td>
+            <td class="bar-cell"><div class="bar" style="width: \${(b.avg_ms / maxMs) * 100}%"></div></td>
+          </tr>
+        \`).join("");
+      } catch (e) {
+        document.getElementById("benchBody").innerHTML = '<tr><td colspan="6">Error: ' + e.message + '</td></tr>';
+      }
+      btn.disabled = false;
+      btn.textContent = n > 50 ? "Benchmark (" + n + ")" : "Run Benchmark (50 iterations)";
+    }
+
+    // Auto-run test on load
+    runTest();
+  </script>
+</body>
+</html>`;
+}
+
+console.log(\`Discovery showcase listening on http://localhost:\${server.port}\`);
