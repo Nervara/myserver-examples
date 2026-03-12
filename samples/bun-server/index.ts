@@ -390,4 +390,4 @@ function renderDashboard(): string {
 </html>`;
 }
 
-console.log(\`Discovery showcase listening on http://localhost:\${server.port}\`);
+console.log(`Discovery showcase listening on http://localhost:${server.port}`);
