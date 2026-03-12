@@ -1,9 +1,13 @@
 {
-  "name": "bun-server-sample",
+  "name": "bun-discovery-showcase",
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
     "start": "bun run index.ts"
   },
-  "dependencies": {}
+  "dependencies": {
+    "pg": "^8.13.0",
+    "mysql2": "^3.11.0",
+    "ioredis": "^5.4.0"
+  }
 }
