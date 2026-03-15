@@ -189,6 +189,21 @@ async function runBenchmark(name: string, fn: QueryFn, iterations: number): Prom
   };
 }
 
+// Ensure bench tables exist once (called before benchmarks/stress, not per-op)
+async function ensureBenchTables() {
+  if (pgPool) {
+    const c = await pgPool.connect();
+    await c.query("CREATE TABLE IF NOT EXISTS _bench(id serial PRIMARY KEY, val text, n int, ts timestamptz DEFAULT now())");
+    c.release();
+  }
+  if (mysqlPool) {
+    await mysqlPool.query("CREATE TABLE IF NOT EXISTS _bench(id INT AUTO_INCREMENT PRIMARY KEY, val VARCHAR(255), n INT, ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+  }
+  if (mariaPool) {
+    await mariaPool.query("CREATE TABLE IF NOT EXISTS _bench(id INT AUTO_INCREMENT PRIMARY KEY, val VARCHAR(255), n INT, ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+  }
+}
+
 // Query functions for each DB (multiple complexity levels)
 function pgQueries(mode: string): QueryFn {
   if (!pgPool) return async () => {};
@@ -196,14 +211,12 @@ function pgQueries(mode: string): QueryFn {
     case "write":
       return async () => {
         const c = await pgPool.connect();
-        await c.query("CREATE TABLE IF NOT EXISTS _bench(id serial PRIMARY KEY, val text, n int, ts timestamptz DEFAULT now())");
         await c.query("INSERT INTO _bench(val, n) VALUES($1, $2)", [`row-${Date.now()}`, Math.random() * 1000 | 0]);
         c.release();
       };
     case "read_write":
       return async () => {
         const c = await pgPool.connect();
-        await c.query("CREATE TABLE IF NOT EXISTS _bench(id serial PRIMARY KEY, val text, n int, ts timestamptz DEFAULT now())");
         await c.query("INSERT INTO _bench(val, n) VALUES($1, $2) RETURNING id", [`rw-${Date.now()}`, Math.random() * 1000 | 0]);
         await c.query("SELECT count(*), avg(n), max(n) FROM _bench");
         await c.query("DELETE FROM _bench WHERE id IN (SELECT id FROM _bench ORDER BY random() LIMIT 5)");
@@ -212,7 +225,6 @@ function pgQueries(mode: string): QueryFn {
     case "transaction":
       return async () => {
         const c = await pgPool.connect();
-        await c.query("CREATE TABLE IF NOT EXISTS _bench(id serial PRIMARY KEY, val text, n int, ts timestamptz DEFAULT now())");
         await c.query("BEGIN");
         await c.query("INSERT INTO _bench(val, n) VALUES($1, $2)", [`tx-${Date.now()}`, Math.random() * 1000 | 0]);
         await c.query("UPDATE _bench SET n = n + 1 WHERE id = (SELECT min(id) FROM _bench)");
@@ -223,7 +235,6 @@ function pgQueries(mode: string): QueryFn {
     case "complex":
       return async () => {
         const c = await pgPool.connect();
-        await c.query("CREATE TABLE IF NOT EXISTS _bench(id serial PRIMARY KEY, val text, n int, ts timestamptz DEFAULT now())");
         await c.query(`
           WITH recent AS (SELECT * FROM _bench ORDER BY ts DESC LIMIT 100),
                stats AS (SELECT count(*) as cnt, avg(n) as avg_n, stddev(n) as std_n FROM recent),
@@ -242,12 +253,10 @@ function mysqlQueries(pool: mysql.Pool | null, mode: string): QueryFn {
   switch (mode) {
     case "write":
       return async () => {
-        await pool.query("CREATE TABLE IF NOT EXISTS _bench(id INT AUTO_INCREMENT PRIMARY KEY, val VARCHAR(255), n INT, ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
         await pool.query("INSERT INTO _bench(val, n) VALUES(?, ?)", [`row-${Date.now()}`, Math.random() * 1000 | 0]);
       };
     case "read_write":
       return async () => {
-        await pool.query("CREATE TABLE IF NOT EXISTS _bench(id INT AUTO_INCREMENT PRIMARY KEY, val VARCHAR(255), n INT, ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
         await pool.query("INSERT INTO _bench(val, n) VALUES(?, ?)", [`rw-${Date.now()}`, Math.random() * 1000 | 0]);
         await pool.query("SELECT count(*) as cnt, avg(n) as avg_n, max(n) as max_n FROM _bench");
         await pool.query("DELETE FROM _bench ORDER BY RAND() LIMIT 5");
@@ -255,7 +264,6 @@ function mysqlQueries(pool: mysql.Pool | null, mode: string): QueryFn {
     case "transaction":
       return async () => {
         const conn = await pool.getConnection();
-        await conn.query("CREATE TABLE IF NOT EXISTS _bench(id INT AUTO_INCREMENT PRIMARY KEY, val VARCHAR(255), n INT, ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
         await conn.beginTransaction();
         await conn.query("INSERT INTO _bench(val, n) VALUES(?, ?)", [`tx-${Date.now()}`, Math.random() * 1000 | 0]);
         await conn.query("UPDATE _bench SET n = n + 1 ORDER BY id LIMIT 1");
@@ -367,6 +375,7 @@ const server = Bun.serve({
     if (url.pathname === "/api/bench") {
       const n = Math.min(Math.max(parseInt(url.searchParams.get("n") || "50"), 10), 1000);
       const mode = url.searchParams.get("mode") || "ping";
+      if (mode !== "ping") await ensureBenchTables();
       const results = (await Promise.all([
         pgPool ? runBenchmark("PostgreSQL", pgQueries(mode), n) : null,
         mysqlPool ? runBenchmark("MySQL", mysqlQueries(mysqlPool, mode), n) : null,
@@ -378,8 +387,14 @@ const server = Bun.serve({
 
     // API: stress test
     if (url.pathname === "/api/stress") {
+      await ensureBenchTables();
       const concurrency = Math.min(Math.max(parseInt(url.searchParams.get("c") || "10"), 1), 50);
-      const ops = Math.min(Math.max(parseInt(url.searchParams.get("ops") || "20"), 5), 200);
+      const rawOps = Math.min(Math.max(parseInt(url.searchParams.get("ops") || "20"), 5), 200);
+      // Cap total ops to prevent Cloudflare tunnel timeout (~100s).
+      // read_write mode does ~4 queries per op, ~5-15ms each = ~40ms/op.
+      // 1500 total ops ≈ 60s worst case per DB (they run in parallel).
+      const maxTotal = 1500;
+      const ops = Math.min(rawOps, Math.floor(maxTotal / concurrency));
       const results = (await Promise.all([
         pgPool ? stressTest("PostgreSQL", pgQueries("read_write"), concurrency, ops) : null,
         mysqlPool ? stressTest("MySQL", mysqlQueries(mysqlPool, "read_write"), concurrency, ops) : null,
