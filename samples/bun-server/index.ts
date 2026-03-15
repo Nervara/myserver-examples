@@ -461,104 +461,199 @@ function renderDashboard(): string {
 '<head>\n' +
 '  <meta charset="UTF-8">\n' +
 '  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
-'  <title>Discovery Showcase | myserver</title>\n' +
+'  <title>Database Performance Observatory | myserver</title>\n' +
+'  <link rel="preconnect" href="https://fonts.googleapis.com">\n' +
+'  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n' +
+'  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">\n' +
 '  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"><\/script>\n' +
 '  <style>\n' +
+'    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }\n' +
 '    :root {\n' +
-'      --bg: #0a0f1a; --card: #111827; --card-hover: #1a2332; --border: #1e293b;\n' +
-'      --text: #e2e8f0; --muted: #94a3b8; --dim: #64748b;\n' +
-'      --pg: #336791; --my: #00758f; --ma: #c0765a; --re: #dc382d;\n' +
+'      --bg: #09090b; --card: #111113; --elevated: #18181b; --border: #1a1a1f;\n' +
+'      --text: #fafafa; --secondary: #a1a1aa; --muted: #52525b;\n' +
+'      --pg: #5b8def; --my: #00b4d8; --ma: #c0765a; --re: #ef4444;\n' +
 '      --green: #22c55e; --red: #ef4444;\n' +
 '    }\n' +
-'    * { margin: 0; padding: 0; box-sizing: border-box; }\n' +
-'    body { font-family: "Inter", system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }\n' +
-'    .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }\n' +
-'    .header { margin-bottom: 2rem; }\n' +
-'    .header h1 { font-size: 2.2rem; font-weight: 800; letter-spacing: -0.03em; }\n' +
-'    .header h1 .brand { background: linear-gradient(135deg, #38bdf8, #818cf8, #c084fc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }\n' +
-'    .header .sub { color: var(--muted); font-size: 0.85rem; margin-top: 0.3rem; }\n' +
-'    .header .tagline { color: var(--dim); font-size: 0.75rem; margin-top: 0.2rem; font-style: italic; }\n' +
-'    .tabs { display: flex; gap: 0; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); }\n' +
-'    .tab { padding: 0.7rem 1.4rem; cursor: pointer; font-size: 0.85rem; font-weight: 500; color: var(--muted); border-bottom: 2px solid transparent; transition: all 0.2s; user-select: none; }\n' +
-'    .tab:hover { color: var(--text); background: rgba(255,255,255,0.02); }\n' +
-'    .tab.active { color: #818cf8; border-bottom-color: #818cf8; }\n' +
-'    .tab-content { display: none; }\n' +
+'    body { font-family: "Inter", system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 13px; font-weight: 400; -webkit-font-smoothing: antialiased; }\n' +
+'    .top-gradient { position: fixed; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #5b8def, #8b5cf6, #ec4899); z-index: 100; }\n' +
+'    .container { max-width: 1200px; margin: 0 auto; padding: 32px 24px; }\n' +
+'\n' +
+'    /* Header */\n' +
+'    .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-top: 8px; }\n' +
+'    .header-left h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.01em; background: linear-gradient(135deg, #5b8def, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }\n' +
+'    .header-left .subtitle { color: var(--secondary); font-size: 13px; margin-top: 4px; }\n' +
+'    .header-right { display: flex; gap: 8px; align-items: center; }\n' +
+'    .pill { display: inline-flex; align-items: center; font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 9999px; background: var(--elevated); border: 1px solid var(--muted); color: var(--secondary); letter-spacing: 0.02em; }\n' +
+'\n' +
+'    /* Tabs */\n' +
+'    .tabs { display: flex; gap: 4px; margin-bottom: 24px; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }\n' +
+'    .tabs::-webkit-scrollbar { display: none; }\n' +
+'    .tab { padding: 8px 16px; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--secondary); border-radius: 8px; transition: all 0.15s ease; user-select: none; white-space: nowrap; display: flex; align-items: center; gap: 6px; min-height: 44px; }\n' +
+'    .tab:hover { color: var(--text); background: rgba(255,255,255,0.04); }\n' +
+'    .tab.active { color: var(--text); background: var(--elevated); border: 1px solid var(--border); }\n' +
+'    .tab-icon { font-size: 14px; opacity: 0.7; }\n' +
+'    .tab-content { display: none; animation: fadeIn 0.15s ease; }\n' +
 '    .tab-content.active { display: block; }\n' +
-'    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }\n' +
-'    .card { background: var(--card); border-radius: 12px; padding: 1.25rem; border: 1px solid var(--border); transition: all 0.25s ease; position: relative; overflow: hidden; }\n' +
-'    .card::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 2px; opacity: 0; transition: opacity 0.25s; }\n' +
-'    .card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.1); background: var(--card-hover); }\n' +
-'    .card:hover::before { opacity: 1; }\n' +
-'    .card.pg::before { background: var(--pg); } .card.my::before { background: var(--my); }\n' +
-'    .card.ma::before { background: var(--ma); } .card.re::before { background: var(--re); }\n' +
-'    .card.ok { border-color: rgba(34,197,94,0.3); }\n' +
-'    .card.err { border-color: rgba(239,68,68,0.3); }\n' +
-'    .card .icon { font-size: 1.8rem; margin-bottom: 0.5rem; }\n' +
-'    .card .name { font-weight: 600; font-size: 1.05rem; margin-bottom: 0.3rem; }\n' +
-'    .badge { font-size: 0.65rem; padding: 2px 8px; border-radius: 9999px; display: inline-block; margin-bottom: 0.5rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }\n' +
-'    .badge.ok { background: rgba(34,197,94,0.15); color: var(--green); }\n' +
-'    .badge.err { background: rgba(239,68,68,0.15); color: var(--red); }\n' +
-'    .card .latency { font-size: 1.8rem; font-weight: 700; margin-bottom: 0.3rem; font-variant-numeric: tabular-nums; }\n' +
+'    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }\n' +
+'\n' +
+'    /* Cards grid */\n' +
+'    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }\n' +
+'    .card { background: var(--card); border-radius: 10px; padding: 20px 20px 20px 24px; border: 1px solid var(--border); border-left: 4px solid var(--border); transition: all 0.2s ease; position: relative; }\n' +
+'    .card:hover { transform: translateY(-1px); border-color: rgba(255,255,255,0.06); }\n' +
+'    .card.pg { border-left-color: var(--pg); } .card.pg:hover { box-shadow: 0 4px 24px rgba(91,141,239,0.05); }\n' +
+'    .card.my { border-left-color: var(--my); } .card.my:hover { box-shadow: 0 4px 24px rgba(0,180,216,0.05); }\n' +
+'    .card.ma { border-left-color: var(--ma); } .card.ma:hover { box-shadow: 0 4px 24px rgba(192,118,90,0.05); }\n' +
+'    .card.re { border-left-color: var(--re); } .card.re:hover { box-shadow: 0 4px 24px rgba(239,68,68,0.05); }\n' +
+'    .card .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }\n' +
+'    .card .name { font-weight: 600; font-size: 14px; letter-spacing: -0.01em; }\n' +
+'    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }\n' +
+'    .status-dot.ok { background: var(--green); box-shadow: 0 0 6px rgba(34,197,94,0.4); }\n' +
+'    .status-dot.err { background: var(--red); box-shadow: 0 0 6px rgba(239,68,68,0.4); }\n' +
+'    .status-row { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; }\n' +
+'    .status-text { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }\n' +
+'    .status-text.ok { color: var(--green); }\n' +
+'    .status-text.err { color: var(--red); }\n' +
+'    .card .latency { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; margin-bottom: 4px; }\n' +
 '    .card.pg .latency { color: var(--pg); } .card.my .latency { color: var(--my); }\n' +
 '    .card.ma .latency { color: var(--ma); } .card.re .latency { color: var(--re); }\n' +
-'    .card .meta { font-size: 0.72rem; color: var(--dim); line-height: 1.6; word-break: break-all; }\n' +
-'    .panel { background: var(--card); border-radius: 12px; padding: 1.5rem; border: 1px solid var(--border); margin-bottom: 1.5rem; backdrop-filter: blur(10px); background: rgba(17,24,39,0.8); }\n' +
-'    .panel h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; }\n' +
-'    .panel .desc { font-size: 0.8rem; color: var(--muted); margin-bottom: 1rem; }\n' +
-'    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }\n' +
-'    th { text-align: left; color: var(--muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.5rem 0.5rem; border-bottom: 1px solid var(--border); }\n' +
-'    td { padding: 0.6rem 0.5rem; border-bottom: 1px solid rgba(30,41,59,0.5); font-variant-numeric: tabular-nums; }\n' +
+'    .latency-unit { font-size: 11px; font-weight: 400; color: var(--muted); margin-left: 2px; }\n' +
+'    .card .meta { font-size: 11px; color: var(--muted); line-height: 1.7; word-break: break-all; margin-top: 8px; }\n' +
+'\n' +
+'    /* Skeleton loading */\n' +
+'    .skeleton { background: var(--card); border-radius: 10px; padding: 20px 20px 20px 24px; border: 1px solid var(--border); border-left: 4px solid var(--border); }\n' +
+'    .skeleton-line { height: 12px; background: linear-gradient(90deg, var(--elevated) 25%, rgba(255,255,255,0.06) 50%, var(--elevated) 75%); background-size: 200% 100%; border-radius: 4px; animation: shimmer 1.5s infinite; margin-bottom: 10px; }\n' +
+'    .skeleton-line.w40 { width: 40%; }\n' +
+'    .skeleton-line.w60 { width: 60%; }\n' +
+'    .skeleton-line.w80 { width: 80%; }\n' +
+'    .skeleton-line.h24 { height: 24px; width: 50%; }\n' +
+'    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }\n' +
+'\n' +
+'    /* Panel */\n' +
+'    .panel { background: var(--card); border-radius: 10px; padding: 24px; border: 1px solid var(--border); margin-bottom: 16px; }\n' +
+'    .panel h2 { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 4px; }\n' +
+'    .panel .desc { font-size: 11px; color: var(--muted); margin-bottom: 16px; letter-spacing: 0.02em; }\n' +
+'\n' +
+'    /* Tables */\n' +
+'    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }\n' +
+'    table { width: 100%; border-collapse: collapse; font-size: 13px; }\n' +
+'    th { text-align: left; color: var(--muted); font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; padding: 8px 12px; border-bottom: 1px solid var(--border); }\n' +
+'    td { padding: 10px 12px; font-variant-numeric: tabular-nums; }\n' +
+'    tr:nth-child(even) td { background: rgba(13,13,15,0.5); }\n' +
 '    tr:hover td { background: rgba(255,255,255,0.02); }\n' +
-'    .stat-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem; }\n' +
-'    .stat { text-align: center; padding: 0.8rem; background: rgba(129,140,248,0.05); border-radius: 10px; border: 1px solid rgba(129,140,248,0.1); }\n' +
-'    .stat .val { font-size: 1.5rem; font-weight: 700; color: #818cf8; font-variant-numeric: tabular-nums; }\n' +
-'    .stat .lbl { font-size: 0.68rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 0.2rem; }\n' +
-'    .chart-wrap { position: relative; height: 280px; margin-bottom: 1.25rem; }\n' +
+'\n' +
+'    /* Stat cards */\n' +
+'    .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }\n' +
+'    .stat { padding: 16px; background: var(--elevated); border-radius: 8px; border: 1px solid var(--border); }\n' +
+'    .stat .val { font-size: 20px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }\n' +
+'    .stat .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }\n' +
+'    .stat .stat-name { font-size: 11px; color: var(--secondary); margin-top: 2px; }\n' +
+'\n' +
+'    /* Charts */\n' +
+'    .chart-wrap { position: relative; height: 280px; margin-bottom: 20px; }\n' +
+'    .chart-legend { display: flex; gap: 16px; margin-bottom: 12px; flex-wrap: wrap; }\n' +
+'    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--secondary); }\n' +
+'    .legend-dot { width: 8px; height: 8px; border-radius: 50%; }\n' +
+'\n' +
+'    /* Sparkline */\n' +
 '    .spark { display: inline-flex; align-items: flex-end; gap: 1px; height: 22px; }\n' +
 '    .spark div { width: 3px; border-radius: 1px; min-height: 2px; opacity: 0.8; }\n' +
-'    .stress-bar { display: flex; height: 20px; border-radius: 4px; overflow: hidden; }\n' +
+'\n' +
+'    /* Stress bar */\n' +
+'    .stress-bar { display: flex; height: 4px; border-radius: 2px; overflow: hidden; width: 100%; margin-bottom: 4px; }\n' +
 '    .stress-bar .ok-part { background: var(--green); }\n' +
 '    .stress-bar .err-part { background: var(--red); }\n' +
-'    button { background: rgba(255,255,255,0.06); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem 1.1rem; cursor: pointer; font-size: 0.82rem; font-weight: 500; transition: all 0.2s; }\n' +
-'    button:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.15); }\n' +
-'    button:disabled { opacity: 0.35; cursor: not-allowed; }\n' +
-'    button.primary { background: rgba(129,140,248,0.15); border-color: rgba(129,140,248,0.3); color: #a5b4fc; }\n' +
-'    button.primary:hover { background: rgba(129,140,248,0.25); }\n' +
-'    button.danger { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.3); color: #fca5a5; }\n' +
-'    button.danger:hover { background: rgba(239,68,68,0.25); }\n' +
-'    .actions { display: flex; gap: 0.75rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: center; }\n' +
-'    select { background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 0.5rem 0.75rem; font-size: 0.82rem; cursor: pointer; }\n' +
-'    select:focus { outline: none; border-color: #818cf8; }\n' +
-'    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.1); border-top-color: #818cf8; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; }\n' +
+'\n' +
+'    /* Buttons */\n' +
+'    button { background: rgba(255,255,255,0.04); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 16px; cursor: pointer; font-size: 13px; font-weight: 500; transition: all 0.15s ease; font-family: "Inter", system-ui, sans-serif; min-height: 44px; }\n' +
+'    button:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.1); }\n' +
+'    button:active { transform: scale(0.98); }\n' +
+'    button:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }\n' +
+'    button.primary { background: rgba(91,141,239,0.12); border-color: rgba(91,141,239,0.25); color: #93b4f6; }\n' +
+'    button.primary:hover { background: rgba(91,141,239,0.2); }\n' +
+'    button.ghost { background: transparent; border-color: transparent; color: var(--muted); font-size: 11px; padding: 6px 12px; min-height: auto; }\n' +
+'    button.ghost:hover { color: var(--secondary); background: rgba(255,255,255,0.04); }\n' +
+'\n' +
+'    /* Stress presets */\n' +
+'    .stress-pill { border-radius: 9999px; font-size: 13px; font-weight: 500; padding: 8px 20px; min-height: 44px; }\n' +
+'    .stress-pill.light { background: var(--elevated); border-color: var(--border); }\n' +
+'    .stress-pill.medium { background: #1e293b; border-color: #2a3a50; }\n' +
+'    .stress-pill.heavy { background: #172554; border-color: #1e3a8a; color: #93b4f6; }\n' +
+'    .stress-pill.extreme { background: #450a0a; border-color: #7f1d1d; color: #fca5a5; }\n' +
+'\n' +
+'    /* Actions */\n' +
+'    .actions { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; align-items: center; }\n' +
+'\n' +
+'    /* Select */\n' +
+'    select { background: var(--elevated); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 12px; font-size: 13px; cursor: pointer; font-family: "Inter", system-ui, sans-serif; min-height: 44px; -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%2352525b\' stroke-width=\'2\'%3E%3Cpath d=\'m6 9 6 6 6-6\'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; padding-right: 30px; }\n' +
+'    select:focus { outline: none; border-color: var(--pg); }\n' +
+'\n' +
+'    /* Iteration pills */\n' +
+'    .iter-pill { border-radius: 9999px; padding: 8px 16px; font-size: 13px; }\n' +
+'\n' +
+'    /* Spinner */\n' +
+'    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.08); border-top-color: var(--pg); border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; }\n' +
 '    @keyframes spin { to { transform: rotate(360deg); } }\n' +
-'    .history-row { cursor: pointer; }\n' +
-'    .history-row:hover td { background: rgba(129,140,248,0.05); }\n' +
-'    .type-badge { font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: 600; text-transform: uppercase; }\n' +
-'    .type-badge.bench { background: rgba(56,189,248,0.15); color: #38bdf8; }\n' +
-'    .type-badge.stress { background: rgba(251,191,36,0.15); color: #fbbf24; }\n' +
-'    .footer { text-align: center; color: var(--dim); font-size: 0.75rem; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); }\n' +
-'    @media (max-width: 640px) { .grid { grid-template-columns: 1fr 1fr; } .stat-row { grid-template-columns: repeat(2, 1fr); } .chart-wrap { height: 200px; } }\n' +
+'\n' +
+'    /* History */\n' +
+'    .history-row { cursor: pointer; transition: background 0.1s; }\n' +
+'    .history-row:hover td { background: rgba(91,141,239,0.04); }\n' +
+'    .type-badge { font-size: 11px; padding: 3px 8px; border-radius: 6px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }\n' +
+'    .type-badge.bench { background: rgba(91,141,239,0.12); color: var(--pg); }\n' +
+'    .type-badge.stress { background: rgba(251,146,60,0.12); color: #fb923c; }\n' +
+'\n' +
+'    /* Expanded detail row */\n' +
+'    .detail-inline { background: var(--elevated); border-radius: 8px; padding: 16px; margin: 8px 0; border: 1px solid var(--border); }\n' +
+'\n' +
+'    /* Empty state */\n' +
+'    .empty-state { text-align: center; padding: 48px 24px; color: var(--muted); font-size: 13px; }\n' +
+'\n' +
+'    /* Footer */\n' +
+'    .footer { text-align: center; padding: 24px 0 8px; margin-top: 32px; }\n' +
+'    .footer-text { font-size: 11px; color: var(--muted); }\n' +
+'    .footer-link { color: var(--muted); text-decoration: none; font-size: 11px; margin-top: 4px; display: inline-block; }\n' +
+'    .footer-link:hover { color: var(--secondary); }\n' +
+'\n' +
+'    /* Responsive */\n' +
+'    @media (max-width: 768px) {\n' +
+'      .container { padding: 24px 16px; }\n' +
+'      .header { flex-direction: column; gap: 12px; }\n' +
+'      .header-left h1 { font-size: 22px; }\n' +
+'      .grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }\n' +
+'      .stat-row { grid-template-columns: repeat(2, 1fr); }\n' +
+'      .chart-wrap { height: 220px; }\n' +
+'      .actions { gap: 6px; }\n' +
+'    }\n' +
+'    @media (max-width: 480px) {\n' +
+'      .grid { grid-template-columns: 1fr; }\n' +
+'      .stat-row { grid-template-columns: repeat(2, 1fr); }\n' +
+'      .chart-wrap { height: 200px; }\n' +
+'      .header-left h1 { font-size: 22px; }\n' +
+'      button, .stress-pill, .iter-pill { font-size: 12px; padding: 8px 12px; }\n' +
+'    }\n' +
 '  </style>\n' +
 '</head>\n' +
 '<body>\n' +
+'  <div class="top-gradient"></div>\n' +
 '  <div class="container">\n' +
 '    <div class="header">\n' +
-'      <h1><span class="brand">myserver</span></h1>\n' +
-'      <p class="sub">Bun ' + Bun.version + ' &bull; ' + process.platform + '/' + process.arch + ' &bull; PID ' + process.pid + '</p>\n' +
-'      <p class="tagline">powered by service discovery</p>\n' +
+'      <div class="header-left">\n' +
+'        <h1>myserver</h1>\n' +
+'        <p class="subtitle">Database Performance Observatory</p>\n' +
+'      </div>\n' +
+'      <div class="header-right">\n' +
+'        <span class="pill">Bun ' + Bun.version + '</span>\n' +
+'        <span class="pill">' + process.platform + '/' + process.arch + '</span>\n' +
+'      </div>\n' +
 '    </div>\n' +
 '\n' +
 '    <div class="tabs">\n' +
-'      <div class="tab active" onclick="switchTab(\'connections\')">Connections</div>\n' +
-'      <div class="tab" onclick="switchTab(\'benchmark\')">Benchmark</div>\n' +
-'      <div class="tab" onclick="switchTab(\'stress\')">Stress Test</div>\n' +
-'      <div class="tab" onclick="switchTab(\'history\')">History</div>\n' +
+'      <div class="tab active" onclick="switchTab(\'connections\')"><span class="tab-icon">&#x2B21;</span> Connections</div>\n' +
+'      <div class="tab" onclick="switchTab(\'benchmark\')"><span class="tab-icon">&#x25C6;</span> Benchmark</div>\n' +
+'      <div class="tab" onclick="switchTab(\'stress\')"><span class="tab-icon">&#x26A1;</span> Stress Test</div>\n' +
+'      <div class="tab" onclick="switchTab(\'history\')"><span class="tab-icon">&#x25F7;</span> History</div>\n' +
 '    </div>\n' +
 '\n' +
 '    <div id="tab-connections" class="tab-content active">\n' +
-'      <div class="actions">\n' +
-'        <button class="primary" onclick="runTest()" id="testBtn">Test All Connections</button>\n' +
-'      </div>\n' +
 '      <div id="cards" class="grid"></div>\n' +
 '    </div>\n' +
 '\n' +
@@ -571,44 +666,47 @@ function renderDashboard(): string {
 '          <option value="transaction">Transaction (BEGIN..COMMIT)</option>\n' +
 '          <option value="complex">Complex (CTE / Pipeline)</option>\n' +
 '        </select>\n' +
-'        <button onclick="runBench(50)" id="benchBtn50">50 iterations</button>\n' +
-'        <button onclick="runBench(200)" id="benchBtn200">200 iterations</button>\n' +
-'        <button class="primary" onclick="runBench(500)" id="benchBtn500">500 iterations</button>\n' +
+'        <button class="iter-pill" onclick="runBench(50)" id="benchBtn50">50 iter</button>\n' +
+'        <button class="iter-pill" onclick="runBench(200)" id="benchBtn200">200 iter</button>\n' +
+'        <button class="iter-pill primary" onclick="runBench(500)" id="benchBtn500">500 iter</button>\n' +
 '      </div>\n' +
 '      <div id="benchResults"></div>\n' +
 '    </div>\n' +
 '\n' +
 '    <div id="tab-stress" class="tab-content">\n' +
 '      <div class="actions">\n' +
-'        <button onclick="runStress(5, 20)">Light (5&times;20)</button>\n' +
-'        <button onclick="runStress(10, 50)" id="stressBtn">Medium (10&times;50)</button>\n' +
-'        <button class="primary" onclick="runStress(20, 50)">Heavy (20&times;50)</button>\n' +
-'        <button class="danger" onclick="runStress(50, 100)">Extreme (50&times;100)</button>\n' +
+'        <button class="stress-pill light" onclick="runStress(5, 20)">Light (5&times;20)</button>\n' +
+'        <button class="stress-pill medium" onclick="runStress(10, 50)" id="stressBtn">Medium (10&times;50)</button>\n' +
+'        <button class="stress-pill heavy" onclick="runStress(20, 50)">Heavy (20&times;50)</button>\n' +
+'        <button class="stress-pill extreme" onclick="runStress(50, 100)">Extreme (50&times;100)</button>\n' +
 '      </div>\n' +
 '      <div id="stressResults"></div>\n' +
 '    </div>\n' +
 '\n' +
 '    <div id="tab-history" class="tab-content">\n' +
-'      <div class="actions">\n' +
-'        <button class="primary" onclick="loadHistory()">Refresh</button>\n' +
-'        <button class="danger" onclick="clearAllHistory()">Clear History</button>\n' +
+'      <div id="historyChart" class="panel" style="display:none">\n' +
+'        <h2>Performance Trend</h2>\n' +
+'        <p class="desc">Ops/sec across all runs</p>\n' +
+'        <div class="chart-wrap" style="height:300px"><canvas id="trendCanvas"></canvas></div>\n' +
 '      </div>\n' +
-'      <div id="historyChart" class="panel" style="display:none"><div class="chart-wrap"><canvas id="trendCanvas"></canvas></div></div>\n' +
 '      <div id="historyTable"></div>\n' +
 '      <div id="historyDetail"></div>\n' +
 '    </div>\n' +
 '\n' +
-'    <div class="footer">Powered by myserver internal service discovery</div>\n' +
+'    <div class="footer">\n' +
+'      <div class="footer-text">Powered by myserver service discovery</div>\n' +
+'      <a class="footer-link" href="#">View source on GitHub</a>\n' +
+'    </div>\n' +
 '  </div>\n' +
 '\n' +
 '  <script>\n' +
-'    var DB_COLORS = { PostgreSQL: "#336791", MySQL: "#00758f", MariaDB: "#c0765a", Redis: "#dc382d" };\n' +
-'    var DB_ICONS = { postgresql: "\\u{1F418}", mysql: "\\u{1F42C}", mariadb: "\\u{1F9AD}", redis: "\\u{26A1}" };\n' +
+'    var DB_COLORS = { PostgreSQL: "#5b8def", MySQL: "#00b4d8", MariaDB: "#c0765a", Redis: "#ef4444" };\n' +
 '    var DB_CARD_CLASS = { postgresql: "pg", mysql: "my", mariadb: "ma", redis: "re" };\n' +
 '    var TAB_NAMES = ["connections", "benchmark", "stress", "history"];\n' +
 '    var benchChart = null;\n' +
 '    var stressChart = null;\n' +
 '    var trendChart = null;\n' +
+'    var expandedRunId = null;\n' +
 '\n' +
 '    function switchTab(name) {\n' +
 '      document.querySelectorAll(".tab").forEach(function(t) { t.classList.remove("active"); });\n' +
@@ -625,15 +723,49 @@ function renderDashboard(): string {
 '      var html = \'<span class="spark">\';\n' +
 '      for (var i = 0; i < hist.length; i++) {\n' +
 '        var h = Math.max(2, (hist[i] / max) * 20);\n' +
-'        html += \'<div style="height:\' + h + \'px;background:\' + (color || "#818cf8") + \'"></div>\';\n' +
+'        html += \'<div style="height:\' + h + \'px;background:\' + (color || "#5b8def") + \'"></div>\';\n' +
 '      }\n' +
 '      return html + \'</span>\';\n' +
 '    }\n' +
 '\n' +
+'    function makeGradient(ctx, chartArea, color) {\n' +
+'      if (!chartArea) return color + "33";\n' +
+'      var gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);\n' +
+'      gradient.addColorStop(0, color + "33");\n' +
+'      gradient.addColorStop(1, color + "05");\n' +
+'      return gradient;\n' +
+'    }\n' +
+'\n' +
+'    function renderSkeletons() {\n' +
+'      var html = "";\n' +
+'      var classes = ["pg", "my", "ma", "re"];\n' +
+'      for (var i = 0; i < 4; i++) {\n' +
+'        html += \'<div class="skeleton" style="border-left-color:var(--\' + classes[i] + \');animation-delay:\' + (i * 100) + \'ms">\';\n' +
+'        html += \'<div class="skeleton-line w40"></div>\';\n' +
+'        html += \'<div class="skeleton-line w60" style="margin-top:8px"></div>\';\n' +
+'        html += \'<div class="skeleton-line h24" style="margin-top:12px"></div>\';\n' +
+'        html += \'<div class="skeleton-line w80" style="margin-top:12px"></div>\';\n' +
+'        html += \'</div>\';\n' +
+'      }\n' +
+'      return html;\n' +
+'    }\n' +
+'\n' +
+'    function chartTooltipConfig() {\n' +
+'      return {\n' +
+'        backgroundColor: "#18181b",\n' +
+'        titleColor: "#fafafa",\n' +
+'        bodyColor: "#a1a1aa",\n' +
+'        borderColor: "#1a1a1f",\n' +
+'        borderWidth: 1,\n' +
+'        cornerRadius: 8,\n' +
+'        padding: 10,\n' +
+'        titleFont: { family: "Inter", size: 12, weight: "600" },\n' +
+'        bodyFont: { family: "Inter", size: 11 }\n' +
+'      };\n' +
+'    }\n' +
+'\n' +
 '    async function runTest() {\n' +
-'      var btn = document.getElementById("testBtn");\n' +
-'      btn.disabled = true;\n' +
-'      btn.innerHTML = \'<span class="spinner"></span> Testing...\';\n' +
+'      document.getElementById("cards").innerHTML = renderSkeletons();\n' +
 '      try {\n' +
 '        var resp = await fetch("/api/test");\n' +
 '        var data = await resp.json();\n' +
@@ -642,24 +774,22 @@ function renderDashboard(): string {
 '          var db = data.databases[i];\n' +
 '          var cls = DB_CARD_CLASS[db.type] || "";\n' +
 '          var statusCls = db.status === "connected" ? "ok" : "err";\n' +
-'          html += \'<div class="card \' + cls + " " + statusCls + \'">\' +\n' +
-'            \'<div class="icon">\' + (DB_ICONS[db.type] || "\\u{1F4BE}") + \'</div>\' +\n' +
-'            \'<div class="name">\' + db.name + \'</div>\' +\n' +
-'            \'<div class="badge \' + statusCls + \'">\' + db.status + \'</div>\' +\n' +
-'            \'<div class="latency">\' + db.latency_ms + \'<span style="font-size:0.8rem;font-weight:400;color:var(--muted)">ms</span></div>\' +\n' +
-'            \'<div class="meta">\' +\n' +
-'              (db.details ? db.details + "<br>" : "") +\n' +
-'              (db.pool_size ? "pool: " + db.pool_size + "<br>" : "") +\n' +
-'              (db.host || "") +\n' +
-'              (db.error ? \'<br><span style="color:var(--red)">\' + db.error + \'</span>\' : "") +\n' +
-'            \'</div></div>\';\n' +
+'          html += \'<div class="card \' + cls + \'" style="animation:fadeIn 0.3s ease \' + (i * 80) + \'ms both">\';\n' +
+'          html += \'<div class="card-header"><span class="name">\' + db.name + \'</span></div>\';\n' +
+'          html += \'<div class="status-row"><span class="status-dot \' + statusCls + \'"></span>\';\n' +
+'          html += \'<span class="status-text \' + statusCls + \'">\' + db.status + \'</span></div>\';\n' +
+'          html += \'<div class="latency">\' + db.latency_ms + \'<span class="latency-unit">ms</span></div>\';\n' +
+'          html += \'<div class="meta">\';\n' +
+'          if (db.details) html += db.details + \'<br>\';\n' +
+'          if (db.pool_size) html += \'pool: \' + db.pool_size + \'<br>\';\n' +
+'          if (db.host) html += db.host;\n' +
+'          if (db.error) html += \'<br><span style="color:var(--red)">\' + db.error + \'</span>\';\n' +
+'          html += \'</div></div>\';\n' +
 '        }\n' +
 '        document.getElementById("cards").innerHTML = html;\n' +
 '      } catch (e) {\n' +
-'        document.getElementById("cards").innerHTML = \'<div class="card err">Error: \' + e.message + \'</div>\';\n' +
+'        document.getElementById("cards").innerHTML = \'<div class="panel" style="grid-column:1/-1"><p style="color:var(--red)">Error: \' + e.message + \'</p></div>\';\n' +
 '      }\n' +
-'      btn.disabled = false;\n' +
-'      btn.textContent = "Test All Connections";\n' +
 '    }\n' +
 '\n' +
 '    async function runBench(n) {\n' +
@@ -673,39 +803,49 @@ function renderDashboard(): string {
 '        var data = await resp.json();\n' +
 '        var benchmarks = data.benchmarks;\n' +
 '        var bestAvg = Infinity;\n' +
+'        var bestAvgName = "";\n' +
 '        var bestOps = 0;\n' +
+'        var bestOpsName = "";\n' +
 '        var totalIter = 0;\n' +
 '        for (var i = 0; i < benchmarks.length; i++) {\n' +
-'          if (benchmarks[i].avg_ms < bestAvg) bestAvg = benchmarks[i].avg_ms;\n' +
-'          if (benchmarks[i].ops_per_sec > bestOps) bestOps = benchmarks[i].ops_per_sec;\n' +
+'          if (benchmarks[i].avg_ms < bestAvg) { bestAvg = benchmarks[i].avg_ms; bestAvgName = benchmarks[i].name; }\n' +
+'          if (benchmarks[i].ops_per_sec > bestOps) { bestOps = benchmarks[i].ops_per_sec; bestOpsName = benchmarks[i].name; }\n' +
 '          totalIter += benchmarks[i].iterations;\n' +
 '        }\n' +
 '\n' +
-'        var html = \'<div class="panel"><h2>Benchmark Results</h2>\' +\n' +
-'          \'<p class="desc">Mode: <strong>\' + mode + \'</strong> &bull; \' + n + \' iterations per database (+ 10% warmup) &bull; \' + data.timestamp + \'</p>\';\n' +
+'        var html = \'<div class="stat-row">\';\n' +
+'        html += \'<div class="stat"><div class="val">\' + bestAvg + \'<span class="latency-unit">ms</span></div><div class="lbl">Fastest Avg</div><div class="stat-name">\' + bestAvgName + \'</div></div>\';\n' +
+'        html += \'<div class="stat"><div class="val">\' + bestOps.toLocaleString() + \'</div><div class="lbl">Highest Throughput</div><div class="stat-name">\' + bestOpsName + \'</div></div>\';\n' +
+'        html += \'<div class="stat"><div class="val">\' + totalIter.toLocaleString() + \'</div><div class="lbl">Total Queries</div></div>\';\n' +
+'        html += \'</div>\';\n' +
 '\n' +
-'        html += \'<div class="stat-row">\';\n' +
-'        html += \'<div class="stat"><div class="val">\' + bestAvg + \'ms</div><div class="lbl">Best Avg Latency</div></div>\';\n' +
-'        html += \'<div class="stat"><div class="val">\' + bestOps.toLocaleString() + \'</div><div class="lbl">Best Ops/s</div></div>\';\n' +
-'        html += \'<div class="stat"><div class="val">\' + totalIter.toLocaleString() + \'</div><div class="lbl">Total Iterations</div></div>\';\n' +
+'        html += \'<div class="panel"><h2>Benchmark Results</h2>\' +\n' +
+'          \'<p class="desc">Mode: \' + mode + \' &middot; \' + n + \' iterations per database (+ 10% warmup) &middot; \' + data.timestamp + \'</p>\';\n' +
+'\n' +
+'        html += \'<div class="chart-legend">\';\n' +
+'        for (var i = 0; i < benchmarks.length; i++) {\n' +
+'          html += \'<span class="legend-item"><span class="legend-dot" style="background:\' + (DB_COLORS[benchmarks[i].name] || "#5b8def") + \'"></span>\' + benchmarks[i].name + \'</span>\';\n' +
+'        }\n' +
 '        html += \'</div>\';\n' +
 '\n' +
 '        html += \'<div class="chart-wrap"><canvas id="benchCanvas"></canvas></div>\';\n' +
 '\n' +
-'        html += \'<table><thead><tr><th>Database</th><th>Avg</th><th>P50</th><th>P95</th><th>P99</th><th>Stddev</th><th>Ops/s</th><th>Distribution</th></tr></thead><tbody>\';\n' +
+'        html += \'<div class="table-wrap"><table><thead><tr><th>DB</th><th>Avg</th><th>P50</th><th>P95</th><th>P99</th>\';\n' +
+'        html += \'<th>&sigma;</th><th>Ops/s</th><th>Distribution</th></tr></thead><tbody>\';\n' +
 '        for (var i = 0; i < benchmarks.length; i++) {\n' +
 '          var b = benchmarks[i];\n' +
-'          var color = DB_COLORS[b.name] || "#818cf8";\n' +
-'          html += \'<tr><td><strong style="color:\' + color + \'">\' + b.name + \'</strong></td>\' +\n' +
-'            \'<td>\' + b.avg_ms + \'ms</td>\' +\n' +
-'            \'<td>\' + b.p50_ms + \'ms</td>\' +\n' +
-'            \'<td>\' + b.p95_ms + \'ms</td>\' +\n' +
-'            \'<td>\' + b.p99_ms + \'ms</td>\' +\n' +
-'            \'<td>\' + b.stddev_ms + \'</td>\' +\n' +
-'            \'<td><strong>\' + b.ops_per_sec.toLocaleString() + \'</strong></td>\' +\n' +
-'            \'<td>\' + sparkline(b.histogram, color) + \'</td></tr>\';\n' +
+'          var color = DB_COLORS[b.name] || "#5b8def";\n' +
+'          html += \'<tr><td><span class="legend-dot" style="background:\' + color + \';display:inline-block;margin-right:6px;vertical-align:middle"></span>\';\n' +
+'          html += \'<strong style="color:\' + color + \'">\' + b.name + \'</strong></td>\';\n' +
+'          html += \'<td>\' + b.avg_ms + \'ms</td>\';\n' +
+'          html += \'<td>\' + b.p50_ms + \'ms</td>\';\n' +
+'          html += \'<td>\' + b.p95_ms + \'ms</td>\';\n' +
+'          html += \'<td>\' + b.p99_ms + \'ms</td>\';\n' +
+'          html += \'<td>\' + b.stddev_ms + \'</td>\';\n' +
+'          html += \'<td><strong>\' + b.ops_per_sec.toLocaleString() + \'</strong></td>\';\n' +
+'          html += \'<td>\' + sparkline(b.histogram, color) + \'</td></tr>\';\n' +
 '        }\n' +
-'        html += \'</tbody></table></div>\';\n' +
+'        html += \'</tbody></table></div></div>\';\n' +
 '\n' +
 '        document.getElementById("benchResults").innerHTML = html;\n' +
 '\n' +
@@ -714,14 +854,14 @@ function renderDashboard(): string {
 '          if (benchChart) benchChart.destroy();\n' +
 '          var labels = [];\n' +
 '          var avgData = [];\n' +
-'          var bgColors = [];\n' +
 '          var borderColors = [];\n' +
+'          var bgColors = [];\n' +
 '          for (var i = 0; i < benchmarks.length; i++) {\n' +
 '            labels.push(benchmarks[i].name);\n' +
 '            avgData.push(benchmarks[i].avg_ms);\n' +
-'            var c = DB_COLORS[benchmarks[i].name] || "#818cf8";\n' +
-'            bgColors.push(c + "40");\n' +
+'            var c = DB_COLORS[benchmarks[i].name] || "#5b8def";\n' +
 '            borderColors.push(c);\n' +
+'            bgColors.push(c);\n' +
 '          }\n' +
 '          benchChart = new Chart(canvas, {\n' +
 '            type: "bar",\n' +
@@ -730,10 +870,19 @@ function renderDashboard(): string {
 '              datasets: [{\n' +
 '                label: "Avg Latency (ms)",\n' +
 '                data: avgData,\n' +
-'                backgroundColor: bgColors,\n' +
+'                backgroundColor: function(ctx) {\n' +
+'                  var chart = ctx.chart;\n' +
+'                  var area = chart.chartArea;\n' +
+'                  if (!area) return bgColors[ctx.dataIndex] + "33";\n' +
+'                  var g = chart.ctx.createLinearGradient(0, area.top, 0, area.bottom);\n' +
+'                  g.addColorStop(0, bgColors[ctx.dataIndex] + "55");\n' +
+'                  g.addColorStop(1, bgColors[ctx.dataIndex] + "0a");\n' +
+'                  return g;\n' +
+'                },\n' +
 '                borderColor: borderColors,\n' +
-'                borderWidth: 2,\n' +
-'                borderRadius: 6\n' +
+'                borderWidth: 1,\n' +
+'                borderRadius: 4,\n' +
+'                borderSkipped: false\n' +
 '              }]\n' +
 '            },\n' +
 '            options: {\n' +
@@ -741,76 +890,90 @@ function renderDashboard(): string {
 '              maintainAspectRatio: false,\n' +
 '              plugins: {\n' +
 '                legend: { display: false },\n' +
-'                tooltip: {\n' +
-'                  backgroundColor: "#1e293b",\n' +
-'                  titleColor: "#e2e8f0",\n' +
-'                  bodyColor: "#94a3b8",\n' +
-'                  borderColor: "#334155",\n' +
-'                  borderWidth: 1,\n' +
-'                  cornerRadius: 8,\n' +
+'                tooltip: Object.assign({}, chartTooltipConfig(), {\n' +
 '                  callbacks: {\n' +
-'                    label: function(ctx) { return ctx.parsed.y + " ms avg"; }\n' +
+'                    afterBody: function(items) {\n' +
+'                      var idx = items[0].dataIndex;\n' +
+'                      var b = benchmarks[idx];\n' +
+'                      return [\n' +
+'                        "P50: " + b.p50_ms + "ms",\n' +
+'                        "P95: " + b.p95_ms + "ms",\n' +
+'                        "P99: " + b.p99_ms + "ms",\n' +
+'                        "Ops/s: " + b.ops_per_sec.toLocaleString()\n' +
+'                      ];\n' +
+'                    }\n' +
 '                  }\n' +
-'                }\n' +
+'                })\n' +
 '              },\n' +
 '              scales: {\n' +
 '                y: {\n' +
 '                  beginAtZero: true,\n' +
-'                  grid: { color: "rgba(255,255,255,0.05)" },\n' +
-'                  ticks: { color: "#94a3b8" },\n' +
-'                  title: { display: true, text: "Latency (ms)", color: "#64748b" }\n' +
+'                  grid: { color: "rgba(255,255,255,0.04)", drawBorder: false },\n' +
+'                  ticks: { color: "#52525b", font: { family: "Inter", size: 11 } },\n' +
+'                  title: { display: true, text: "Latency (ms)", color: "#52525b", font: { family: "Inter", size: 11 } }\n' +
 '                },\n' +
 '                x: {\n' +
 '                  grid: { display: false },\n' +
-'                  ticks: { color: "#94a3b8" }\n' +
+'                  ticks: { color: "#a1a1aa", font: { family: "Inter", size: 11 } }\n' +
 '                }\n' +
 '              }\n' +
 '            }\n' +
 '          });\n' +
 '        }\n' +
 '      } catch (e) {\n' +
-'        document.getElementById("benchResults").innerHTML = \'<div class="panel">Error: \' + e.message + \'</div>\';\n' +
+'        document.getElementById("benchResults").innerHTML = \'<div class="panel"><p style="color:var(--red)">Error: \' + e.message + \'</p></div>\';\n' +
 '      }\n' +
 '      btnIds.forEach(function(id) { var b = document.getElementById(id); if (b) b.disabled = false; });\n' +
-'      activeBtn.textContent = n + " iterations";\n' +
+'      activeBtn.textContent = n + " iter";\n' +
 '    }\n' +
 '\n' +
 '    async function runStress(c, ops) {\n' +
 '      var btns = document.querySelectorAll("#tab-stress button");\n' +
 '      btns.forEach(function(b) { b.disabled = true; });\n' +
-'      document.getElementById("stressResults").innerHTML = \'<div class="panel"><span class="spinner"></span> Running stress test: \' + c + \' concurrent workers &times; \' + ops + \' operations each...</div>\';\n' +
+'      document.getElementById("stressResults").innerHTML = \'<div class="panel" style="text-align:center;padding:32px"><span class="spinner"></span><p style="color:var(--secondary);margin-top:12px">Running stress test: \' + c + \' concurrent workers &times; \' + ops + \' operations each...</p></div>\';\n' +
 '      try {\n' +
 '        var resp = await fetch("/api/stress?c=" + c + "&ops=" + ops);\n' +
 '        var data = await resp.json();\n' +
 '        var results = data.results;\n' +
 '\n' +
-'        var html = \'<div class="panel"><h2>Stress Test Results</h2>\' +\n' +
-'          \'<p class="desc">\' + c + \' concurrent workers &times; \' + data.ops_per_worker + \' ops each &bull; \' + data.timestamp + \'</p>\';\n' +
-'\n' +
-'        html += \'<div class="stat-row">\';\n' +
+'        var totalOps = 0;\n' +
+'        var totalDuration = 0;\n' +
+'        var totalErrors = 0;\n' +
 '        for (var i = 0; i < results.length; i++) {\n' +
-'          html += \'<div class="stat"><div class="val">\' + results[i].ops_per_sec.toLocaleString() + \'</div><div class="lbl">\' + results[i].name + \' ops/s</div></div>\';\n' +
+'          totalOps += results[i].total_ops;\n' +
+'          totalDuration += results[i].duration_ms;\n' +
+'          totalErrors += results[i].errors;\n' +
 '        }\n' +
+'        var errRate = totalOps > 0 ? ((totalErrors / totalOps) * 100).toFixed(2) : "0.00";\n' +
+'\n' +
+'        var html = \'<div class="stat-row">\';\n' +
+'        html += \'<div class="stat"><div class="val">\' + totalOps.toLocaleString() + \'</div><div class="lbl">Total Operations</div></div>\';\n' +
+'        html += \'<div class="stat"><div class="val">\' + Math.round(totalDuration / results.length).toLocaleString() + \'<span class="latency-unit">ms</span></div><div class="lbl">Avg Duration</div></div>\';\n' +
+'        html += \'<div class="stat"><div class="val" style="color:\' + (totalErrors > 0 ? \'var(--red)\' : \'var(--green)\') + \'">\' + errRate + \'%</div><div class="lbl">Error Rate</div></div>\';\n' +
 '        html += \'</div>\';\n' +
 '\n' +
-'        html += \'<div class="chart-wrap"><canvas id="stressCanvas"></canvas></div>\';\n' +
+'        html += \'<div class="panel"><h2>Stress Test Results</h2>\' +\n' +
+'          \'<p class="desc">\' + c + \' concurrent workers &times; \' + data.ops_per_worker + \' ops each &middot; \' + data.timestamp + \'</p>\';\n' +
 '\n' +
-'        html += \'<table><thead><tr><th>Database</th><th>Total Ops</th><th>Success</th><th>Errors</th><th>Avg</th><th>P99</th><th>Duration</th><th>Ops/s</th><th style="width:18%">Success Rate</th></tr></thead><tbody>\';\n' +
+'        html += \'<div class="chart-wrap" style="height:200px"><canvas id="stressCanvas"></canvas></div>\';\n' +
+'\n' +
+'        html += \'<div class="table-wrap"><table><thead><tr><th>Database</th><th>Total Ops</th><th>Success</th><th>Errors</th><th>Avg</th><th>P99</th><th>Duration</th><th>Ops/s</th><th style="width:16%">Success Rate</th></tr></thead><tbody>\';\n' +
 '        for (var i = 0; i < results.length; i++) {\n' +
 '          var r = results[i];\n' +
 '          var pct = r.total_ops ? (r.success / r.total_ops * 100) : 0;\n' +
-'          html += \'<tr><td><strong style="color:\' + (DB_COLORS[r.name] || "#818cf8") + \'">\' + r.name + \'</strong></td>\' +\n' +
-'            \'<td>\' + r.total_ops.toLocaleString() + \'</td>\' +\n' +
-'            \'<td style="color:var(--green)">\' + r.success.toLocaleString() + \'</td>\' +\n' +
-'            \'<td style="color:\' + (r.errors ? \'var(--red)\' : \'var(--dim)\') + \'">\' + r.errors + \'</td>\' +\n' +
-'            \'<td>\' + r.avg_ms + \'ms</td>\' +\n' +
-'            \'<td>\' + r.p99_ms + \'ms</td>\' +\n' +
-'            \'<td>\' + r.duration_ms + \'ms</td>\' +\n' +
-'            \'<td><strong>\' + r.ops_per_sec.toLocaleString() + \'</strong></td>\' +\n' +
-'            \'<td><div class="stress-bar"><div class="ok-part" style="width:\' + pct + \'%"></div><div class="err-part" style="width:\' + (100 - pct) + \'%"></div></div>\' +\n' +
-'            \'<span style="font-size:0.72rem;color:var(--muted)">\' + pct.toFixed(1) + \'%</span></td></tr>\';\n' +
+'          html += \'<tr><td><span class="legend-dot" style="background:\' + (DB_COLORS[r.name] || "#5b8def") + \';display:inline-block;margin-right:6px;vertical-align:middle"></span>\';\n' +
+'          html += \'<strong style="color:\' + (DB_COLORS[r.name] || "#5b8def") + \'">\' + r.name + \'</strong></td>\';\n' +
+'          html += \'<td>\' + r.total_ops.toLocaleString() + \'</td>\';\n' +
+'          html += \'<td style="color:var(--green)">\' + r.success.toLocaleString() + \'</td>\';\n' +
+'          html += \'<td style="color:\' + (r.errors ? \'var(--red)\' : \'var(--muted)\') + \'">\' + r.errors + \'</td>\';\n' +
+'          html += \'<td>\' + r.avg_ms + \'ms</td>\';\n' +
+'          html += \'<td>\' + r.p99_ms + \'ms</td>\';\n' +
+'          html += \'<td>\' + r.duration_ms + \'ms</td>\';\n' +
+'          html += \'<td><strong>\' + r.ops_per_sec.toLocaleString() + \'</strong></td>\';\n' +
+'          html += \'<td><div class="stress-bar"><div class="ok-part" style="width:\' + pct + \'%"></div><div class="err-part" style="width:\' + (100 - pct) + \'%"></div></div>\';\n' +
+'          html += \'<span style="font-size:11px;color:var(--muted)">\' + pct.toFixed(1) + \'%</span></td></tr>\';\n' +
 '        }\n' +
-'        html += \'</tbody></table></div>\';\n' +
+'        html += \'</tbody></table></div></div>\';\n' +
 '\n' +
 '        document.getElementById("stressResults").innerHTML = html;\n' +
 '\n' +
@@ -824,8 +987,8 @@ function renderDashboard(): string {
 '          for (var i = 0; i < results.length; i++) {\n' +
 '            labels.push(results[i].name);\n' +
 '            opsData.push(results[i].ops_per_sec);\n' +
-'            var c2 = DB_COLORS[results[i].name] || "#818cf8";\n' +
-'            bgColors.push(c2 + "40");\n' +
+'            var c2 = DB_COLORS[results[i].name] || "#5b8def";\n' +
+'            bgColors.push(c2 + "33");\n' +
 '            borderColors.push(c2);\n' +
 '          }\n' +
 '          stressChart = new Chart(canvas, {\n' +
@@ -837,8 +1000,9 @@ function renderDashboard(): string {
 '                data: opsData,\n' +
 '                backgroundColor: bgColors,\n' +
 '                borderColor: borderColors,\n' +
-'                borderWidth: 2,\n' +
-'                borderRadius: 6\n' +
+'                borderWidth: 1,\n' +
+'                borderRadius: 4,\n' +
+'                borderSkipped: false\n' +
 '              }]\n' +
 '            },\n' +
 '            options: {\n' +
@@ -847,32 +1011,25 @@ function renderDashboard(): string {
 '              maintainAspectRatio: false,\n' +
 '              plugins: {\n' +
 '                legend: { display: false },\n' +
-'                tooltip: {\n' +
-'                  backgroundColor: "#1e293b",\n' +
-'                  titleColor: "#e2e8f0",\n' +
-'                  bodyColor: "#94a3b8",\n' +
-'                  borderColor: "#334155",\n' +
-'                  borderWidth: 1,\n' +
-'                  cornerRadius: 8\n' +
-'                }\n' +
+'                tooltip: chartTooltipConfig()\n' +
 '              },\n' +
 '              scales: {\n' +
 '                x: {\n' +
 '                  beginAtZero: true,\n' +
-'                  grid: { color: "rgba(255,255,255,0.05)" },\n' +
-'                  ticks: { color: "#94a3b8" },\n' +
-'                  title: { display: true, text: "Operations / second", color: "#64748b" }\n' +
+'                  grid: { color: "rgba(255,255,255,0.04)", drawBorder: false },\n' +
+'                  ticks: { color: "#52525b", font: { family: "Inter", size: 11 } },\n' +
+'                  title: { display: true, text: "Operations / second", color: "#52525b", font: { family: "Inter", size: 11 } }\n' +
 '                },\n' +
 '                y: {\n' +
 '                  grid: { display: false },\n' +
-'                  ticks: { color: "#94a3b8" }\n' +
+'                  ticks: { color: "#a1a1aa", font: { family: "Inter", size: 11 } }\n' +
 '                }\n' +
 '              }\n' +
 '            }\n' +
 '          });\n' +
 '        }\n' +
 '      } catch (e) {\n' +
-'        document.getElementById("stressResults").innerHTML = \'<div class="panel">Error: \' + e.message + \'</div>\';\n' +
+'        document.getElementById("stressResults").innerHTML = \'<div class="panel"><p style="color:var(--red)">Error: \' + e.message + \'</p></div>\';\n' +
 '      }\n' +
 '      btns.forEach(function(b) { b.disabled = false; });\n' +
 '    }\n' +
@@ -883,44 +1040,60 @@ function renderDashboard(): string {
 '        var runs = await resp.json();\n' +
 '        if (!runs.length) {\n' +
 '          document.getElementById("historyChart").style.display = "none";\n' +
-'          document.getElementById("historyTable").innerHTML = \'<div class="panel"><p style="color:var(--muted);text-align:center">No history yet. Run a benchmark or stress test first.</p></div>\';\n' +
+'          document.getElementById("historyTable").innerHTML = \'<div class="empty-state">No runs recorded yet. Run a benchmark to get started.</div>\';\n' +
 '          return;\n' +
 '        }\n' +
 '\n' +
 '        document.getElementById("historyChart").style.display = "block";\n' +
 '        buildTrendChart(runs);\n' +
 '\n' +
-'        var html = \'<div class="panel"><h2>Past Runs</h2><p class="desc">\' + runs.length + \' runs recorded</p>\';\n' +
-'        html += \'<table><thead><tr><th>#</th><th>Type</th><th>Mode</th><th>Timestamp</th><th>Summary</th></tr></thead><tbody>\';\n' +
+'        var html = \'<div class="panel"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">\';\n' +
+'        html += \'<div><h2>Past Runs</h2><p class="desc" style="margin-bottom:0">\' + runs.length + \' runs recorded</p></div>\';\n' +
+'        html += \'<button class="ghost" onclick="clearAllHistory()">Clear History</button></div>\';\n' +
+'        html += \'<div class="table-wrap"><table><thead><tr><th>#</th><th>Type</th><th>Mode</th><th>Timestamp</th><th>Summary</th></tr></thead><tbody>\';\n' +
 '        for (var i = 0; i < runs.length; i++) {\n' +
 '          var r = runs[i];\n' +
 '          var summary = "";\n' +
 '          if (r.type === "bench" && r.data.benchmarks) {\n' +
 '            var names = [];\n' +
 '            for (var j = 0; j < r.data.benchmarks.length; j++) {\n' +
-'              names.push(r.data.benchmarks[j].name + ": " + r.data.benchmarks[j].ops_per_sec + " ops/s");\n' +
+'              names.push(r.data.benchmarks[j].name + " " + r.data.benchmarks[j].ops_per_sec + " ops/s");\n' +
 '            }\n' +
 '            summary = names.join(", ");\n' +
 '          } else if (r.type === "stress" && r.data.results) {\n' +
 '            var names = [];\n' +
 '            for (var j = 0; j < r.data.results.length; j++) {\n' +
-'              names.push(r.data.results[j].name + ": " + r.data.results[j].ops_per_sec + " ops/s");\n' +
+'              names.push(r.data.results[j].name + " " + r.data.results[j].ops_per_sec + " ops/s");\n' +
 '            }\n' +
 '            summary = names.join(", ");\n' +
 '          }\n' +
-'          html += \'<tr class="history-row" onclick="showRunDetail(\' + r.id + \')">\' +\n' +
-'            \'<td>\' + r.id + \'</td>\' +\n' +
-'            \'<td><span class="type-badge \' + r.type + \'">\' + r.type + \'</span></td>\' +\n' +
-'            \'<td>\' + r.mode + \'</td>\' +\n' +
-'            \'<td style="font-size:0.78rem;color:var(--muted)">\' + r.timestamp + \'</td>\' +\n' +
-'            \'<td style="font-size:0.78rem;max-width:350px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">\' + summary + \'</td></tr>\';\n' +
+'          html += \'<tr class="history-row" onclick="toggleRunDetail(\' + r.id + \', this)">\';\n' +
+'          html += \'<td>\' + r.id + \'</td>\';\n' +
+'          html += \'<td><span class="type-badge \' + r.type + \'">\' + r.type + \'</span></td>\';\n' +
+'          html += \'<td>\' + r.mode + \'</td>\';\n' +
+'          html += \'<td style="font-size:11px;color:var(--muted)">\' + formatTimestamp(r.timestamp) + \'</td>\';\n' +
+'          html += \'<td style="font-size:11px;max-width:350px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--secondary)">\' + summary + \'</td></tr>\';\n' +
+'          html += \'<tr class="detail-row" id="detail-\' + r.id + \'" style="display:none"><td colspan="5"></td></tr>\';\n' +
 '        }\n' +
-'        html += \'</tbody></table></div>\';\n' +
+'        html += \'</tbody></table></div></div>\';\n' +
 '        document.getElementById("historyTable").innerHTML = html;\n' +
 '        document.getElementById("historyDetail").innerHTML = "";\n' +
+'        expandedRunId = null;\n' +
 '      } catch (e) {\n' +
-'        document.getElementById("historyTable").innerHTML = \'<div class="panel">Error: \' + e.message + \'</div>\';\n' +
+'        document.getElementById("historyTable").innerHTML = \'<div class="panel"><p style="color:var(--red)">Error: \' + e.message + \'</p></div>\';\n' +
 '      }\n' +
+'    }\n' +
+'\n' +
+'    function formatTimestamp(ts) {\n' +
+'      try {\n' +
+'        var d = new Date(ts);\n' +
+'        var now = new Date();\n' +
+'        var hours = String(d.getHours()).length < 2 ? "0" + d.getHours() : String(d.getHours());\n' +
+'        var mins = String(d.getMinutes()).length < 2 ? "0" + d.getMinutes() : String(d.getMinutes());\n' +
+'        if (d.toDateString() === now.toDateString()) return hours + ":" + mins;\n' +
+'        var months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];\n' +
+'        return months[d.getMonth()] + " " + d.getDate() + " " + hours + ":" + mins;\n' +
+'      } catch (e) { return ts; }\n' +
 '    }\n' +
 '\n' +
 '    function buildTrendChart(runs) {\n' +
@@ -938,8 +1111,7 @@ function renderDashboard(): string {
 '      var chronological = runs.slice().reverse();\n' +
 '      for (var i = 0; i < chronological.length; i++) {\n' +
 '        var r = chronological[i];\n' +
-'        var label = "#" + r.id + " " + r.type;\n' +
-'        labels.push(label);\n' +
+'        labels.push(formatTimestamp(r.timestamp));\n' +
 '        var items = r.type === "bench" ? (r.data.benchmarks || []) : (r.data.results || []);\n' +
 '        var found = {};\n' +
 '        for (var j = 0; j < items.length; j++) {\n' +
@@ -962,12 +1134,14 @@ function renderDashboard(): string {
 '          label: name,\n' +
 '          data: series[name],\n' +
 '          borderColor: DB_COLORS[name],\n' +
-'          backgroundColor: DB_COLORS[name] + "20",\n' +
+'          backgroundColor: DB_COLORS[name] + "1a",\n' +
 '          tension: 0.3,\n' +
-'          pointRadius: 3,\n' +
-'          pointHoverRadius: 6,\n' +
+'          pointRadius: 0,\n' +
+'          pointHoverRadius: 4,\n' +
+'          pointHoverBackgroundColor: DB_COLORS[name],\n' +
 '          spanGaps: true,\n' +
-'          fill: false\n' +
+'          fill: true,\n' +
+'          borderWidth: 2\n' +
 '        });\n' +
 '      }\n' +
 '\n' +
@@ -977,74 +1151,83 @@ function renderDashboard(): string {
 '        options: {\n' +
 '          responsive: true,\n' +
 '          maintainAspectRatio: false,\n' +
+'          interaction: { mode: "index", intersect: false },\n' +
 '          plugins: {\n' +
 '            legend: {\n' +
-'              labels: { color: "#94a3b8", usePointStyle: true, pointStyle: "circle" }\n' +
+'              labels: { color: "#a1a1aa", usePointStyle: true, pointStyle: "circle", font: { family: "Inter", size: 11 }, padding: 16 }\n' +
 '            },\n' +
-'            tooltip: {\n' +
-'              backgroundColor: "#1e293b",\n' +
-'              titleColor: "#e2e8f0",\n' +
-'              bodyColor: "#94a3b8",\n' +
-'              borderColor: "#334155",\n' +
-'              borderWidth: 1,\n' +
-'              cornerRadius: 8\n' +
-'            }\n' +
+'            tooltip: chartTooltipConfig()\n' +
 '          },\n' +
 '          scales: {\n' +
 '            y: {\n' +
 '              beginAtZero: true,\n' +
-'              grid: { color: "rgba(255,255,255,0.05)" },\n' +
-'              ticks: { color: "#94a3b8" },\n' +
-'              title: { display: true, text: "Ops/sec", color: "#64748b" }\n' +
+'              grid: { color: "rgba(255,255,255,0.04)", drawBorder: false },\n' +
+'              ticks: { color: "#52525b", font: { family: "Inter", size: 11 } },\n' +
+'              title: { display: true, text: "Ops/sec", color: "#52525b", font: { family: "Inter", size: 11 } }\n' +
 '            },\n' +
 '            x: {\n' +
-'              grid: { color: "rgba(255,255,255,0.03)" },\n' +
-'              ticks: { color: "#64748b", maxRotation: 45, font: { size: 10 } }\n' +
+'              grid: { color: "rgba(255,255,255,0.02)", drawBorder: false },\n' +
+'              ticks: { color: "#52525b", maxRotation: 45, font: { family: "Inter", size: 10 } }\n' +
 '            }\n' +
 '          }\n' +
 '        }\n' +
 '      });\n' +
 '    }\n' +
 '\n' +
-'    async function showRunDetail(id) {\n' +
+'    async function toggleRunDetail(id, rowEl) {\n' +
+'      var detailRow = document.getElementById("detail-" + id);\n' +
+'      if (!detailRow) return;\n' +
+'      if (expandedRunId === id) {\n' +
+'        detailRow.style.display = "none";\n' +
+'        expandedRunId = null;\n' +
+'        return;\n' +
+'      }\n' +
+'      if (expandedRunId !== null) {\n' +
+'        var prev = document.getElementById("detail-" + expandedRunId);\n' +
+'        if (prev) prev.style.display = "none";\n' +
+'      }\n' +
+'      expandedRunId = id;\n' +
+'      var cell = detailRow.querySelector("td");\n' +
+'      cell.innerHTML = \'<div style="padding:8px 0;text-align:center"><span class="spinner"></span></div>\';\n' +
+'      detailRow.style.display = "";\n' +
 '      try {\n' +
 '        var resp = await fetch("/api/history/" + id);\n' +
 '        var run = await resp.json();\n' +
-'        var html = \'<div class="panel"><h2>Run #\' + run.id + \' Details</h2>\' +\n' +
-'          \'<p class="desc"><span class="type-badge \' + run.type + \'">\' + run.type + \'</span> &bull; Mode: \' + run.mode + \' &bull; \' + run.timestamp + \'</p>\';\n' +
+'        var html = \'<div class="detail-inline">\';\n' +
+'        html += \'<div style="margin-bottom:8px"><span class="type-badge \' + run.type + \'">\' + run.type + \'</span>\';\n' +
+'        html += \' <span style="color:var(--muted);font-size:11px">Mode: \' + run.mode + \' &middot; \' + run.timestamp + \'</span></div>\';\n' +
 '\n' +
 '        if (run.type === "bench" && run.data.benchmarks) {\n' +
 '          var benchmarks = run.data.benchmarks;\n' +
-'          html += \'<table><thead><tr><th>Database</th><th>Avg</th><th>P50</th><th>P95</th><th>P99</th><th>Stddev</th><th>Ops/s</th><th>Iterations</th></tr></thead><tbody>\';\n' +
+'          html += \'<div class="table-wrap"><table><thead><tr><th>Database</th><th>Avg</th><th>P50</th><th>P95</th><th>P99</th><th>Stddev</th><th>Ops/s</th><th>Iterations</th></tr></thead><tbody>\';\n' +
 '          for (var i = 0; i < benchmarks.length; i++) {\n' +
 '            var b = benchmarks[i];\n' +
-'            html += \'<tr><td><strong style="color:\' + (DB_COLORS[b.name] || "#818cf8") + \'">\' + b.name + \'</strong></td>\' +\n' +
-'              \'<td>\' + b.avg_ms + \'ms</td><td>\' + b.p50_ms + \'ms</td><td>\' + b.p95_ms + \'ms</td>\' +\n' +
-'              \'<td>\' + b.p99_ms + \'ms</td><td>\' + b.stddev_ms + \'</td>\' +\n' +
-'              \'<td><strong>\' + b.ops_per_sec.toLocaleString() + \'</strong></td>\' +\n' +
-'              \'<td>\' + b.iterations + \'</td></tr>\';\n' +
+'            html += \'<tr><td><strong style="color:\' + (DB_COLORS[b.name] || "#5b8def") + \'">\' + b.name + \'</strong></td>\';\n' +
+'            html += \'<td>\' + b.avg_ms + \'ms</td><td>\' + b.p50_ms + \'ms</td><td>\' + b.p95_ms + \'ms</td>\';\n' +
+'            html += \'<td>\' + b.p99_ms + \'ms</td><td>\' + b.stddev_ms + \'</td>\';\n' +
+'            html += \'<td><strong>\' + b.ops_per_sec.toLocaleString() + \'</strong></td>\';\n' +
+'            html += \'<td>\' + b.iterations + \'</td></tr>\';\n' +
 '          }\n' +
-'          html += \'</tbody></table>\';\n' +
+'          html += \'</tbody></table></div>\';\n' +
 '        } else if (run.type === "stress" && run.data.results) {\n' +
 '          var results = run.data.results;\n' +
-'          html += \'<table><thead><tr><th>Database</th><th>Total Ops</th><th>Success</th><th>Errors</th><th>Avg</th><th>P99</th><th>Ops/s</th></tr></thead><tbody>\';\n' +
+'          html += \'<div class="table-wrap"><table><thead><tr><th>Database</th><th>Total Ops</th><th>Success</th><th>Errors</th><th>Avg</th><th>P99</th><th>Ops/s</th></tr></thead><tbody>\';\n' +
 '          for (var i = 0; i < results.length; i++) {\n' +
 '            var r = results[i];\n' +
-'            html += \'<tr><td><strong style="color:\' + (DB_COLORS[r.name] || "#818cf8") + \'">\' + r.name + \'</strong></td>\' +\n' +
-'              \'<td>\' + r.total_ops + \'</td>\' +\n' +
-'              \'<td style="color:var(--green)">\' + r.success + \'</td>\' +\n' +
-'              \'<td style="color:\' + (r.errors ? \'var(--red)\' : \'var(--dim)\') + \'">\' + r.errors + \'</td>\' +\n' +
-'              \'<td>\' + r.avg_ms + \'ms</td><td>\' + r.p99_ms + \'ms</td>\' +\n' +
-'              \'<td><strong>\' + r.ops_per_sec.toLocaleString() + \'</strong></td></tr>\';\n' +
+'            html += \'<tr><td><strong style="color:\' + (DB_COLORS[r.name] || "#5b8def") + \'">\' + r.name + \'</strong></td>\';\n' +
+'            html += \'<td>\' + r.total_ops + \'</td>\';\n' +
+'            html += \'<td style="color:var(--green)">\' + r.success + \'</td>\';\n' +
+'            html += \'<td style="color:\' + (r.errors ? \'var(--red)\' : \'var(--muted)\') + \'">\' + r.errors + \'</td>\';\n' +
+'            html += \'<td>\' + r.avg_ms + \'ms</td><td>\' + r.p99_ms + \'ms</td>\';\n' +
+'            html += \'<td><strong>\' + r.ops_per_sec.toLocaleString() + \'</strong></td></tr>\';\n' +
 '          }\n' +
-'          html += \'</tbody></table>\';\n' +
+'          html += \'</tbody></table></div>\';\n' +
 '        }\n' +
 '\n' +
 '        html += \'</div>\';\n' +
-'        document.getElementById("historyDetail").innerHTML = html;\n' +
-'        document.getElementById("historyDetail").scrollIntoView({ behavior: "smooth" });\n' +
+'        cell.innerHTML = html;\n' +
 '      } catch (e) {\n' +
-'        document.getElementById("historyDetail").innerHTML = \'<div class="panel">Error: \' + e.message + \'</div>\';\n' +
+'        cell.innerHTML = \'<div class="detail-inline" style="color:var(--red)">Error: \' + e.message + \'</div>\';\n' +
 '      }\n' +
 '    }\n' +
 '\n' +
