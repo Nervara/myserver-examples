@@ -1183,7 +1183,13 @@ function renderDashboard(): string {
       loadHistory();
     }
 
-    runTest();
+    runTest().catch(function(err) {
+      document.getElementById('cards').innerHTML = '<div class="bg-red-50 border border-red-200 rounded-xl p-4 text-red-600 text-sm col-span-full">Init error: ' + err.message + ' | ' + err.stack + '</div>';
+    });
+    window.onerror = function(msg, url, line) {
+      var el = document.getElementById('cards');
+      if (el) el.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-xl p-4 text-red-600 text-sm col-span-full">JS Error: ' + msg + ' at line ' + line + '</div>';
+    };
   <\/script>
 </body>
 </html>`;
