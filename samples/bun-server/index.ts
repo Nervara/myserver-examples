@@ -462,22 +462,17 @@ function renderDashboard(): string {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Database Performance Observatory | myserver</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"><\/script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"><\/script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script>
-  tailwind.config = {
-    theme: { extend: { fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] } } }
-  }
-  <\/script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"><\/script>
   <style>
     .spark { display: inline-flex; align-items: flex-end; gap: 1px; height: 22px; }
     .spark div { width: 3px; border-radius: 2px; min-height: 2px; opacity: 0.85; }
   </style>
 </head>
-<body class="font-sans bg-[#f7f8fa] min-h-screen">
+<body class="font-sans min-h-screen" style="background:#f7f8fa; font-family: Inter, system-ui, sans-serif">
 
   <!-- Header -->
   <div class="bg-white border-b border-gray-100">
@@ -547,7 +542,7 @@ function renderDashboard(): string {
 
     <!-- History Tab -->
     <div id="tab-history" class="tab-content hidden">
-      <div id="historyChart" class="bg-white rounded-2xl p-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-gray-100 mb-5" style="display:none">
+      <div id="historyChart" class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-5" style="display:none">
         <h2 class="text-sm font-semibold text-gray-800">Performance Trend</h2>
         <p class="text-xs text-gray-400 mb-4">Ops/sec across all runs</p>
         <div style="height:300px"><canvas id="trendCanvas"></canvas></div>
@@ -621,7 +616,7 @@ function renderDashboard(): string {
       var html = '';
       var colors = ['#4F7BEF', '#00A7D0', '#C4784F', '#E84D3D'];
       for (var i = 0; i < 4; i++) {
-        html += '<div class="bg-white rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-gray-100" style="border-left: 3px solid ' + colors[i] + '">';
+        html += '<div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100" style="border-left: 3px solid ' + colors[i] + '">';
         html += '<div class="space-y-3">';
         html += '<div class="h-4 w-24 bg-gray-100 animate-pulse rounded"></div>';
         html += '<div class="h-3 w-16 bg-gray-100 animate-pulse rounded"></div>';
@@ -642,7 +637,7 @@ function renderDashboard(): string {
           var db = data.databases[i];
           var borderColor = DB_BORDER_STYLE[db.type] || '#e5e7eb';
           var isOk = db.status === 'connected';
-          html += '<div class="bg-white rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-gray-100" style="border-left: 3px solid ' + borderColor + '">';
+          html += '<div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100" style="border-left: 3px solid ' + borderColor + '">';
           html += '<div class="space-y-2">';
           html += '<div class="text-sm font-semibold text-gray-800">' + db.name + '</div>';
           html += '<div class="flex items-center gap-2">';
@@ -691,20 +686,20 @@ function renderDashboard(): string {
         }
 
         var html = '<div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-5">';
-        html += '<div class="bg-white rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-gray-100">';
+        html += '<div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">';
         html += '<div class="text-xs text-gray-400 uppercase tracking-wide mb-1">Fastest Avg</div>';
         html += '<div class="text-2xl font-bold text-gray-900">' + bestAvg + '<span class="text-sm font-normal text-gray-300 ml-1">ms</span></div>';
         html += '<div class="text-xs text-blue-500 mt-1">' + bestAvgName + '</div></div>';
-        html += '<div class="bg-white rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-gray-100">';
+        html += '<div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">';
         html += '<div class="text-xs text-gray-400 uppercase tracking-wide mb-1">Highest Throughput</div>';
         html += '<div class="text-2xl font-bold text-gray-900">' + bestOps.toLocaleString() + '</div>';
         html += '<div class="text-xs text-blue-500 mt-1">' + bestOpsName + '</div></div>';
-        html += '<div class="bg-white rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-gray-100">';
+        html += '<div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">';
         html += '<div class="text-xs text-gray-400 uppercase tracking-wide mb-1">Total Queries</div>';
         html += '<div class="text-2xl font-bold text-gray-900">' + totalIter.toLocaleString() + '</div></div>';
         html += '</div>';
 
-        html += '<div class="bg-white rounded-2xl p-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-gray-100">';
+        html += '<div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">';
         html += '<h2 class="text-sm font-semibold text-gray-800">Benchmark Results</h2>';
         html += '<p class="text-xs text-gray-400 mb-4">Mode: ' + mode + ' &middot; ' + n + ' iterations per database (+ 10% warmup) &middot; ' + data.timestamp + '</p>';
 
@@ -832,18 +827,18 @@ function renderDashboard(): string {
         var errRate = totalOps > 0 ? ((totalErrors / totalOps) * 100).toFixed(2) : '0.00';
 
         var html = '<div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-5">';
-        html += '<div class="bg-white rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-gray-100">';
+        html += '<div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">';
         html += '<div class="text-xs text-gray-400 uppercase tracking-wide mb-1">Total Operations</div>';
         html += '<div class="text-2xl font-bold text-gray-900">' + totalOps.toLocaleString() + '</div></div>';
-        html += '<div class="bg-white rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-gray-100">';
+        html += '<div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">';
         html += '<div class="text-xs text-gray-400 uppercase tracking-wide mb-1">Avg Duration</div>';
         html += '<div class="text-2xl font-bold text-gray-900">' + Math.round(totalDuration / results.length).toLocaleString() + '<span class="text-sm font-normal text-gray-300 ml-1">ms</span></div></div>';
-        html += '<div class="bg-white rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-gray-100">';
+        html += '<div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">';
         html += '<div class="text-xs text-gray-400 uppercase tracking-wide mb-1">Error Rate</div>';
         html += '<div class="text-2xl font-bold ' + (totalErrors > 0 ? 'text-red-500' : 'text-green-500') + '">' + errRate + '%</div></div>';
         html += '</div>';
 
-        html += '<div class="bg-white rounded-2xl p-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-gray-100">';
+        html += '<div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">';
         html += '<h2 class="text-sm font-semibold text-gray-800">Stress Test Results</h2>';
         html += '<p class="text-xs text-gray-400 mb-4">' + c + ' concurrent workers x ' + data.ops_per_worker + ' ops each &middot; ' + data.timestamp + '</p>';
 
@@ -954,7 +949,7 @@ function renderDashboard(): string {
         document.getElementById('historyChart').style.display = '';
         buildTrendChart(runs);
 
-        var html = '<div class="bg-white rounded-2xl p-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)] border border-gray-100">';
+        var html = '<div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">';
         html += '<div class="flex justify-between items-center mb-4">';
         html += '<div><h2 class="text-sm font-semibold text-gray-800">Run History</h2><p class="text-xs text-gray-400">' + runs.length + ' runs recorded</p></div>';
         html += '<button class="text-red-400 text-sm hover:text-red-600 transition-colors" onclick="clearAllHistory()">Clear History</button></div>';
