@@ -510,7 +510,12 @@ function renderDashboard(): string {
 
     <!-- Connections Tab -->
     <div id="tab-connections" class="tab-content">
-      <div id="cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"></div>
+      <div id="cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <div style="background:white;border:1px solid #e5e7eb;border-radius:16px;padding:20px;border-left:3px solid #4F7BEF">
+          <div style="font-size:14px;font-weight:600;color:#1f2937">Loading...</div>
+          <div style="font-size:12px;color:#9ca3af;margin-top:4px">If you see this, JS is not executing</div>
+        </div>
+      </div>
     </div>
 
     <!-- Benchmark Tab -->
