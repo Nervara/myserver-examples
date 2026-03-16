@@ -457,737 +457,572 @@ const server = Bun.serve({
 
 function renderDashboard(): string {
   return `<!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Database Performance Observatory | myserver</title>
-  <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet">
+  <title>Database Discovery | myserver</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"><\/script>
   <style>
-    .spark { display: inline-flex; align-items: flex-end; gap: 1px; height: 22px; }
-    .spark div { width: 3px; border-radius: 2px; min-height: 2px; opacity: 0.85; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: "Inter", -apple-system, BlinkMacSystemFont, sans-serif; background: #f7f8fa; color: #1f2937; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .grid-2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+    .card { background: #fff; border-radius: 16px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.04); padding: 20px; }
+    .card-bordered { border-left: 3px solid #e5e7eb; }
+    .card-pg { border-left-color: #4F7BEF; }
+    .card-mysql { border-left-color: #00A7D0; }
+    .card-mariadb { border-left-color: #C4784F; }
+    .card-redis { border-left-color: #E84D3D; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; padding: 8px 16px; border-radius: 8px; border: 1px solid #e5e7eb; background: #fff; color: #1f2937; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s ease; font-family: inherit; }
+    .btn:hover { background: #f3f4f6; border-color: #d1d5db; }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: #4F7BEF; color: #fff; border-color: #4F7BEF; }
+    .btn-primary:hover { background: #3b65d9; border-color: #3b65d9; }
+    .btn-danger { background: #fff; color: #E84D3D; border-color: #fca5a5; }
+    .btn-danger:hover { background: #fef2f2; border-color: #E84D3D; }
+    .btn-sm { padding: 5px 10px; font-size: 12px; }
+    .btn-group { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tab-bar { display: flex; border-bottom: 2px solid #e5e7eb; margin-bottom: 24px; gap: 0; }
+    .tab { padding: 10px 20px; font-size: 14px; font-weight: 500; color: #6b7280; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s ease; background: none; border-top: none; border-left: none; border-right: none; font-family: inherit; }
+    .tab:hover { color: #1f2937; }
+    .tab-active { color: #4F7BEF; border-bottom-color: #4F7BEF; }
+    .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
+    .badge-blue { background: #eff6ff; color: #2563eb; }
+    .badge-green { background: #f0fdf4; color: #16a34a; }
+    .badge-orange { background: #fff7ed; color: #ea580c; }
+    .badge-red { background: #fef2f2; color: #dc2626; }
+    .badge-gray { background: #f3f4f6; color: #6b7280; }
+    .stat-card { text-align: center; }
+    .stat-value { font-size: 28px; font-weight: 700; color: #1f2937; line-height: 1.2; }
+    .stat-label { font-size: 12px; color: #9ca3af; font-weight: 500; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th { text-align: left; padding: 10px 12px; font-weight: 600; color: #6b7280; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #e5e7eb; }
+    td { padding: 10px 12px; border-bottom: 1px solid #f3f4f6; }
+    tr:last-child td { border-bottom: none; }
+    .text-secondary { color: #6b7280; }
+    .text-muted { color: #9ca3af; }
+    .text-sm { font-size: 13px; }
+    .text-xs { font-size: 11px; }
+    .mono { font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace; }
+    .hidden { display: none !important; }
+    .mb-16 { margin-bottom: 16px; }
+    .mb-20 { margin-bottom: 20px; }
+    .mb-24 { margin-bottom: 24px; }
+    .mt-16 { margin-top: 16px; }
+    .mt-24 { margin-top: 24px; }
+    .flex { display: flex; }
+    .flex-wrap { flex-wrap: wrap; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .gap-8 { gap: 8px; }
+    .gap-12 { gap: 12px; }
+    .gap-16 { gap: 16px; }
+    .skeleton { background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 8px; }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .spinner { width: 20px; height: 20px; border: 2px solid #e5e7eb; border-top-color: #4F7BEF; border-radius: 50%; animation: spin 0.6s linear infinite; display: inline-block; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .header { padding: 24px 0; }
+    .logo { width: 36px; height: 36px; background: #4F7BEF; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 16px; flex-shrink: 0; }
+    .header-title { font-size: 20px; font-weight: 700; }
+    .header-sub { font-size: 13px; color: #6b7280; }
+    .pill { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; background: #f3f4f6; color: #6b7280; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .status-ok { background: #22c55e; }
+    .status-err { background: #ef4444; }
+    .sparkline { display: inline-flex; align-items: flex-end; gap: 1px; height: 20px; }
+    .sparkline-bar { width: 3px; background: #4F7BEF; border-radius: 1px; min-height: 2px; }
+    .progress-bar { height: 6px; border-radius: 3px; background: #f3f4f6; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s ease; }
+    .expand-row { cursor: pointer; }
+    .expand-row:hover { background: #fafafa; }
+    .expand-detail { background: #fafafa; }
+    .chart-container { position: relative; height: 300px; }
+    select { font-family: inherit; font-size: 13px; padding: 7px 28px 7px 10px; border-radius: 8px; border: 1px solid #e5e7eb; background: #fff; -webkit-appearance: none; appearance: none; color: #1f2937; cursor: pointer; }
+    select:hover { border-color: #d1d5db; }
+    .empty-state { text-align: center; padding: 60px 20px; color: #9ca3af; }
+    .empty-state-title { font-size: 16px; font-weight: 600; color: #6b7280; margin-bottom: 4px; }
+    @media (max-width: 1024px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 768px) { .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; } .tab { padding: 8px 14px; font-size: 13px; } .container { padding: 0 16px; } .header { padding: 16px 0; } }
   </style>
 </head>
-<body class="font-sans min-h-screen" style="background:#f7f8fa; font-family: Inter, system-ui, sans-serif">
-
-  <!-- Header -->
-  <div class="bg-white border-b border-gray-100">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-lg bg-blue-500 flex items-center justify-center">
-          <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7C5 4 4 5 4 7z"/><path stroke-linecap="round" stroke-width="2" d="M9 12h6M12 9v6"/></svg>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="flex items-center gap-16 justify-between">
+        <div class="flex items-center gap-12">
+          <div class="logo">M</div>
+          <div>
+            <div class="header-title">myserver</div>
+            <div class="header-sub">Database Discovery &amp; Performance</div>
+          </div>
         </div>
-        <div>
-          <h1 class="text-xl font-bold text-gray-900">myserver</h1>
-          <p class="text-sm text-gray-400">Database Performance Observatory</p>
+        <div class="flex items-center gap-8 flex-wrap">
+          <span class="pill">Bun ${Bun.version}</span>
+          <span class="pill">${process.platform}/${process.arch}</span>
+          <span class="pill">PID ${process.pid}</span>
         </div>
       </div>
-      <div class="flex gap-2">
-        <span class="bg-gray-100 text-gray-500 text-xs px-2 py-1 rounded-full">Bun ${Bun.version}</span>
-        <span class="bg-gray-100 text-gray-500 text-xs px-2 py-1 rounded-full">${process.platform}/${process.arch}</span>
-      </div>
     </div>
-  </div>
 
-  <!-- Tab bar -->
-  <div class="bg-white border-b border-gray-100">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6">
-      <nav class="flex gap-6" id="mainTabs">
-        <a class="py-3 text-sm font-semibold text-gray-900 border-b-2 border-blue-500 cursor-pointer" onclick="switchTab('connections')">Connections</a>
-        <a class="py-3 text-sm text-gray-400 hover:text-gray-600 border-b-2 border-transparent cursor-pointer" onclick="switchTab('benchmark')">Benchmark</a>
-        <a class="py-3 text-sm text-gray-400 hover:text-gray-600 border-b-2 border-transparent cursor-pointer" onclick="switchTab('stress')">Stress Test</a>
-        <a class="py-3 text-sm text-gray-400 hover:text-gray-600 border-b-2 border-transparent cursor-pointer" onclick="switchTab('history')">History</a>
-      </nav>
+    <div class="tab-bar">
+      <button class="tab tab-active" onclick="switchTab('connections')">Connections</button>
+      <button class="tab" onclick="switchTab('benchmark')">Benchmark</button>
+      <button class="tab" onclick="switchTab('stress')">Stress Test</button>
+      <button class="tab" onclick="switchTab('history')">History</button>
     </div>
-  </div>
-
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-8">
 
     <!-- Connections Tab -->
-    <div id="tab-connections" class="tab-content">
-      <div id="cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div style="background:white;border:1px solid #e5e7eb;border-radius:16px;padding:20px;border-left:3px solid #4F7BEF">
-          <div style="font-size:14px;font-weight:600;color:#1f2937">Loading...</div>
-          <div style="font-size:12px;color:#9ca3af;margin-top:4px">If you see this, JS is not executing</div>
-        </div>
+    <div id="tab-connections">
+      <div class="flex items-center justify-between mb-20">
+        <div class="text-secondary text-sm">Auto-testing database connections...</div>
+        <button class="btn btn-sm" onclick="testConnections()">Retest</button>
+      </div>
+      <div id="cards" class="grid-4">
+        <div class="card skeleton" style="height:160px"></div>
+        <div class="card skeleton" style="height:160px"></div>
+        <div class="card skeleton" style="height:160px"></div>
+        <div class="card skeleton" style="height:160px"></div>
       </div>
     </div>
 
     <!-- Benchmark Tab -->
-    <div id="tab-benchmark" class="tab-content hidden">
-      <div class="flex flex-wrap gap-3 mb-6 items-center">
-        <select id="benchMode" class="border border-gray-200 rounded-lg text-sm text-gray-700 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-          <option value="ping">Ping (SELECT 1)</option>
-          <option value="write">Write (INSERT)</option>
-          <option value="read_write" selected>Read + Write Mix</option>
-          <option value="transaction">Transaction (BEGIN..COMMIT)</option>
-          <option value="complex">Complex (CTE / Pipeline)</option>
-        </select>
-        <button class="px-4 py-2 text-sm rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors" onclick="runBench(50)" id="benchBtn50">50 iter</button>
-        <button class="px-4 py-2 text-sm rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors" onclick="runBench(200)" id="benchBtn200">200 iter</button>
-        <button class="px-4 py-2 text-sm rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors" onclick="runBench(500)" id="benchBtn500">500 iter</button>
+    <div id="tab-benchmark" class="hidden">
+      <div class="flex items-center justify-between mb-20 flex-wrap gap-12">
+        <div class="flex items-center gap-8 flex-wrap">
+          <select id="bench-mode">
+            <option value="ping">Ping (SELECT 1)</option>
+            <option value="write">Write (INSERT)</option>
+            <option value="read_write">Read/Write Mix</option>
+            <option value="transaction">Transaction</option>
+            <option value="complex">Complex (CTE)</option>
+          </select>
+          <div class="btn-group">
+            <button class="btn btn-sm" onclick="runBench(50)">50x</button>
+            <button class="btn btn-sm" onclick="runBench(100)">100x</button>
+            <button class="btn btn-sm" onclick="runBench(200)">200x</button>
+            <button class="btn btn-sm" onclick="runBench(500)">500x</button>
+          </div>
+        </div>
+        <div id="bench-status" class="text-muted text-sm"></div>
       </div>
-      <div id="benchResults"></div>
+      <div id="bench-stats" class="grid-4 mb-24 hidden"></div>
+      <div id="bench-chart-wrap" class="card mb-24 hidden">
+        <div class="chart-container"><canvas id="bench-chart"></canvas></div>
+      </div>
+      <div id="bench-table-wrap" class="card hidden">
+        <div class="table-wrap"><table id="bench-table"></table></div>
+      </div>
     </div>
 
-    <!-- Stress Test Tab -->
-    <div id="tab-stress" class="tab-content hidden">
-      <div class="flex flex-wrap gap-3 mb-6">
-        <button class="px-4 py-2 text-sm rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors" onclick="runStress(5, 20)">Light (5x20)</button>
-        <button class="px-4 py-2 text-sm rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors" onclick="runStress(10, 50)">Medium (10x50)</button>
-        <button class="px-4 py-2 text-sm rounded-lg bg-blue-500 text-white hover:bg-blue-600 transition-colors" onclick="runStress(20, 50)">Heavy (20x50)</button>
-        <button class="px-4 py-2 text-sm rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors" onclick="runStress(50, 100)">Extreme (50x100)</button>
+    <!-- Stress Tab -->
+    <div id="tab-stress" class="hidden">
+      <div class="flex items-center justify-between mb-20 flex-wrap gap-12">
+        <div class="btn-group">
+          <button class="btn btn-sm" onclick="runStress(5, 20)">Light (5x20)</button>
+          <button class="btn btn-sm" onclick="runStress(10, 20)">Medium (10x20)</button>
+          <button class="btn btn-sm" onclick="runStress(20, 30)">Heavy (20x30)</button>
+          <button class="btn btn-sm" onclick="runStress(50, 20)">Extreme (50x20)</button>
+        </div>
+        <div id="stress-status" class="text-muted text-sm"></div>
       </div>
-      <div id="stressResults"></div>
+      <div id="stress-stats" class="grid-4 mb-24 hidden"></div>
+      <div id="stress-chart-wrap" class="card mb-24 hidden">
+        <div class="chart-container"><canvas id="stress-chart"></canvas></div>
+      </div>
+      <div id="stress-table-wrap" class="card hidden">
+        <div class="table-wrap"><table id="stress-table"></table></div>
+      </div>
     </div>
 
     <!-- History Tab -->
-    <div id="tab-history" class="tab-content hidden">
-      <div id="historyChart" class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-5" style="display:none">
-        <h2 class="text-sm font-semibold text-gray-800">Performance Trend</h2>
-        <p class="text-xs text-gray-400 mb-4">Ops/sec across all runs</p>
-        <div style="height:300px"><canvas id="trendCanvas"></canvas></div>
+    <div id="tab-history" class="hidden">
+      <div class="flex items-center justify-between mb-20">
+        <div class="text-secondary text-sm" id="history-count"></div>
+        <button class="btn btn-danger btn-sm" onclick="clearHist()">Clear History</button>
       </div>
-      <div id="historyTable"></div>
-      <div id="historyDetail"></div>
-    </div>
-
-    <!-- Footer -->
-    <div class="text-center py-6 mt-8">
-      <p class="text-xs text-gray-300">Powered by myserver service discovery</p>
+      <div id="history-chart-wrap" class="card mb-24 hidden">
+        <div class="chart-container"><canvas id="history-chart"></canvas></div>
+      </div>
+      <div id="history-table-wrap" class="card">
+        <div class="table-wrap"><table id="history-table"></table></div>
+      </div>
+      <div id="history-empty" class="card hidden">
+        <div class="empty-state">
+          <div class="empty-state-title">No history yet</div>
+          <div class="text-muted text-sm">Run benchmarks or stress tests to see results here.</div>
+        </div>
+      </div>
     </div>
   </div>
 
+  <div style="height:40px"></div>
+
   <script>
-    var DB_COLORS = { PostgreSQL: '#4F7BEF', MySQL: '#00A7D0', MariaDB: '#C4784F', Redis: '#E84D3D' };
-    var DB_BORDER_STYLE = { postgresql: '#4F7BEF', mysql: '#00A7D0', mariadb: '#C4784F', redis: '#E84D3D' };
-    var TAB_NAMES = ['connections', 'benchmark', 'stress', 'history'];
+    var DB_COLORS = { 'PostgreSQL': '#4F7BEF', 'MySQL': '#00A7D0', 'MariaDB': '#C4784F', 'Redis': '#E84D3D' };
+    var DB_CLASS = { 'PostgreSQL': 'card-pg', 'MySQL': 'card-mysql', 'MariaDB': 'card-mariadb', 'Redis': 'card-redis' };
     var benchChart = null;
     var stressChart = null;
-    var trendChart = null;
-    var expandedRunId = null;
+    var historyChart = null;
 
     function switchTab(name) {
-      var tabEls = document.querySelectorAll('#mainTabs a');
-      for (var i = 0; i < tabEls.length; i++) {
-        if (TAB_NAMES[i] === name) {
-          tabEls[i].className = 'py-3 text-sm font-semibold text-gray-900 border-b-2 border-blue-500 cursor-pointer';
-        } else {
-          tabEls[i].className = 'py-3 text-sm text-gray-400 hover:text-gray-600 border-b-2 border-transparent cursor-pointer';
-        }
-      }
-      for (var i = 0; i < TAB_NAMES.length; i++) {
-        var el = document.getElementById('tab-' + TAB_NAMES[i]);
-        if (TAB_NAMES[i] === name) {
+      var tabs = ['connections', 'benchmark', 'stress', 'history'];
+      var buttons = document.querySelectorAll('.tab');
+      for (var i = 0; i < tabs.length; i++) {
+        var el = document.getElementById('tab-' + tabs[i]);
+        if (tabs[i] === name) {
           el.classList.remove('hidden');
+          buttons[i].classList.add('tab-active');
         } else {
           el.classList.add('hidden');
+          buttons[i].classList.remove('tab-active');
         }
       }
-      if (name === 'connections') runTest();
-      if (name === 'history') loadHistory();
+      if (name === 'history') { loadHistory(); }
     }
 
-    function sparkline(hist, color) {
+    function makeSparkline(hist) {
       if (!hist || !hist.length) return '';
-      var max = Math.max.apply(null, hist.concat([1]));
-      var html = '<span class="spark">';
+      var max = Math.max.apply(null, hist);
+      if (max === 0) return '';
+      var html = '<span class="sparkline">';
       for (var i = 0; i < hist.length; i++) {
-        var h = Math.max(2, (hist[i] / max) * 20);
-        html += '<div style="height:' + h + 'px;background:' + (color || '#4F7BEF') + '"></div>';
+        var h = Math.max(2, Math.round((hist[i] / max) * 20));
+        html += '<span class="sparkline-bar" style="height:' + h + 'px"></span>';
       }
-      return html + '</span>';
-    }
-
-    function chartTooltipConfig() {
-      return {
-        backgroundColor: '#ffffff',
-        titleColor: '#374151',
-        bodyColor: '#6b7280',
-        borderColor: '#e5e7eb',
-        borderWidth: 1,
-        cornerRadius: 10,
-        padding: 12,
-        titleFont: { family: 'Inter', size: 12, weight: '600' },
-        bodyFont: { family: 'Inter', size: 11 }
-      };
-    }
-
-    function renderSkeletons() {
-      var html = '';
-      var colors = ['#4F7BEF', '#00A7D0', '#C4784F', '#E84D3D'];
-      for (var i = 0; i < 4; i++) {
-        html += '<div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100" style="border-left: 3px solid ' + colors[i] + '">';
-        html += '<div class="space-y-3">';
-        html += '<div class="h-4 w-24 bg-gray-100 animate-pulse rounded"></div>';
-        html += '<div class="h-3 w-16 bg-gray-100 animate-pulse rounded"></div>';
-        html += '<div class="h-8 w-20 bg-gray-100 animate-pulse rounded"></div>';
-        html += '<div class="h-3 w-32 bg-gray-100 animate-pulse rounded"></div>';
-        html += '</div></div>';
-      }
+      html += '</span>';
       return html;
     }
 
-    async function runTest() {
-      document.getElementById('cards').innerHTML = renderSkeletons();
-      try {
-        var resp = await fetch('/api/test');
-        var data = await resp.json();
+    function makeProgressBar(pct, color) {
+      return '<div class="progress-bar" style="width:100px;display:inline-block;vertical-align:middle"><div class="progress-fill" style="width:' + Math.min(100, pct) + '%;background:' + color + '"></div></div>';
+    }
+
+    function testConnections() {
+      var cards = document.getElementById('cards');
+      cards.innerHTML = '<div class="card skeleton" style="height:160px"></div><div class="card skeleton" style="height:160px"></div><div class="card skeleton" style="height:160px"></div><div class="card skeleton" style="height:160px"></div>';
+      fetch('/api/test').then(function(r) { return r.json(); }).then(function(data) {
         var html = '';
         for (var i = 0; i < data.databases.length; i++) {
           var db = data.databases[i];
-          var borderColor = DB_BORDER_STYLE[db.type] || '#e5e7eb';
+          var cls = DB_CLASS[db.name] || '';
+          var color = DB_COLORS[db.name] || '#6b7280';
           var isOk = db.status === 'connected';
-          html += '<div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100" style="border-left: 3px solid ' + borderColor + '">';
-          html += '<div class="space-y-2">';
-          html += '<div class="text-sm font-semibold text-gray-800">' + db.name + '</div>';
-          html += '<div class="flex items-center gap-2">';
+          html += '<div class="card card-bordered ' + cls + '">' +
+            '<div class="flex items-center justify-between mb-16">' +
+              '<div class="flex items-center gap-8">' +
+                '<span class="status-dot ' + (isOk ? 'status-ok' : 'status-err') + '"></span>' +
+                '<span style="font-weight:600;font-size:15px">' + db.name + '</span>' +
+              '</div>' +
+              '<span class="badge ' + (isOk ? 'badge-green' : 'badge-red') + '">' + db.status + '</span>' +
+            '</div>';
           if (isOk) {
-            html += '<span class="inline-block w-2 h-2 rounded-full bg-green-400"></span>';
-            html += '<span class="text-xs text-gray-400">Connected</span>';
+            html += '<div style="font-size:32px;font-weight:700;color:' + color + '">' + db.latency_ms + '<span style="font-size:14px;font-weight:500;color:#9ca3af"> ms</span></div>' +
+              '<div class="text-xs text-muted mt-16" style="word-break:break-all">' + (db.details || '') + '</div>';
+            if (db.pool_size !== undefined) {
+              html += '<div class="text-xs text-muted" style="margin-top:4px">Pool: ' + db.pool_size + ' connections</div>';
+            }
           } else {
-            html += '<span class="inline-block w-2 h-2 rounded-full bg-red-400"></span>';
-            html += '<span class="text-xs text-gray-400">Error</span>';
+            html += '<div class="text-sm" style="color:#E84D3D;margin-top:8px;word-break:break-all">' + (db.error || 'Connection failed') + '</div>';
           }
           html += '</div>';
-          html += '<div class="text-3xl font-bold text-gray-900">' + db.latency_ms + '<span class="text-sm font-normal text-gray-300 ml-1">ms</span></div>';
-          html += '<div class="text-xs text-gray-400 leading-relaxed">';
-          if (db.details) html += db.details + '<br>';
-          if (db.pool_size) html += 'pool: ' + db.pool_size + '<br>';
-          if (db.host) html += db.host;
-          if (db.error) html += '<br><span class="text-red-400">' + db.error + '</span>';
-          html += '</div>';
-          html += '</div></div>';
         }
-        document.getElementById('cards').innerHTML = html;
-      } catch (e) {
-        document.getElementById('cards').innerHTML = '<div class="bg-red-50 border border-red-200 rounded-2xl p-4 text-red-600 text-sm col-span-full">Error: ' + e.message + '</div>';
-      }
+        cards.innerHTML = html;
+      }).catch(function(err) {
+        cards.innerHTML = '<div class="card" style="grid-column:1/-1;color:#E84D3D">Error: ' + err.message + '</div>';
+      });
     }
 
-    async function runBench(n) {
-      var mode = document.getElementById('benchMode').value;
-      var btnIds = ['benchBtn50', 'benchBtn200', 'benchBtn500'];
-      btnIds.forEach(function(id) { var b = document.getElementById(id); if (b) b.disabled = true; });
-      var activeBtn = document.getElementById('benchBtn' + n) || document.getElementById('benchBtn50');
-      activeBtn.innerHTML = '<svg class="animate-spin inline w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg>Running...';
-      try {
-        var resp = await fetch('/api/bench?n=' + n + '&mode=' + mode);
-        var data = await resp.json();
+    function runBench(n) {
+      var mode = document.getElementById('bench-mode').value;
+      var status = document.getElementById('bench-status');
+      status.innerHTML = '<span class="spinner"></span> Running ' + n + 'x ' + mode + '...';
+      document.getElementById('bench-stats').classList.add('hidden');
+      document.getElementById('bench-chart-wrap').classList.add('hidden');
+      document.getElementById('bench-table-wrap').classList.add('hidden');
+
+      fetch('/api/bench?n=' + n + '&mode=' + mode).then(function(r) { return r.json(); }).then(function(data) {
+        status.textContent = 'Completed ' + data.iterations + ' iterations (' + mode + ')';
         var benchmarks = data.benchmarks;
-        var bestAvg = Infinity;
-        var bestAvgName = '';
-        var bestOps = 0;
-        var bestOpsName = '';
-        var totalIter = 0;
-        for (var i = 0; i < benchmarks.length; i++) {
-          if (benchmarks[i].avg_ms < bestAvg) { bestAvg = benchmarks[i].avg_ms; bestAvgName = benchmarks[i].name; }
-          if (benchmarks[i].ops_per_sec > bestOps) { bestOps = benchmarks[i].ops_per_sec; bestOpsName = benchmarks[i].name; }
-          totalIter += benchmarks[i].iterations;
-        }
-
-        var html = '<div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-5">';
-        html += '<div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">';
-        html += '<div class="text-xs text-gray-400 uppercase tracking-wide mb-1">Fastest Avg</div>';
-        html += '<div class="text-2xl font-bold text-gray-900">' + bestAvg + '<span class="text-sm font-normal text-gray-300 ml-1">ms</span></div>';
-        html += '<div class="text-xs text-blue-500 mt-1">' + bestAvgName + '</div></div>';
-        html += '<div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">';
-        html += '<div class="text-xs text-gray-400 uppercase tracking-wide mb-1">Highest Throughput</div>';
-        html += '<div class="text-2xl font-bold text-gray-900">' + bestOps.toLocaleString() + '</div>';
-        html += '<div class="text-xs text-blue-500 mt-1">' + bestOpsName + '</div></div>';
-        html += '<div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">';
-        html += '<div class="text-xs text-gray-400 uppercase tracking-wide mb-1">Total Queries</div>';
-        html += '<div class="text-2xl font-bold text-gray-900">' + totalIter.toLocaleString() + '</div></div>';
-        html += '</div>';
-
-        html += '<div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">';
-        html += '<h2 class="text-sm font-semibold text-gray-800">Benchmark Results</h2>';
-        html += '<p class="text-xs text-gray-400 mb-4">Mode: ' + mode + ' &middot; ' + n + ' iterations per database (+ 10% warmup) &middot; ' + data.timestamp + '</p>';
-
-        html += '<div style="height:280px" class="mb-6"><canvas id="benchCanvas"></canvas></div>';
-
-        html += '<div class="overflow-x-auto"><table class="w-full">';
-        html += '<thead><tr>';
-        html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-3 font-medium">DB</th>';
-        html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-3 font-medium">Avg</th>';
-        html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-3 font-medium">P50</th>';
-        html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-3 font-medium">P95</th>';
-        html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-3 font-medium">P99</th>';
-        html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-3 font-medium">&sigma;</th>';
-        html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-3 font-medium">Ops/s</th>';
-        html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-3 font-medium">Distribution</th>';
-        html += '</tr></thead><tbody>';
-        for (var i = 0; i < benchmarks.length; i++) {
-          var b = benchmarks[i];
-          var color = DB_COLORS[b.name] || '#4F7BEF';
-          var rowBg = i % 2 === 1 ? 'bg-gray-50' : 'bg-white';
-          html += '<tr class="' + rowBg + '">';
-          html += '<td class="py-2.5 text-sm text-gray-700"><span class="inline-block w-2 h-2 rounded-full mr-2" style="background:' + color + '"></span>';
-          html += '<strong>' + b.name + '</strong></td>';
-          html += '<td class="py-2.5 text-sm text-gray-700">' + b.avg_ms + 'ms</td>';
-          html += '<td class="py-2.5 text-sm text-gray-700">' + b.p50_ms + 'ms</td>';
-          html += '<td class="py-2.5 text-sm text-gray-700">' + b.p95_ms + 'ms</td>';
-          html += '<td class="py-2.5 text-sm text-gray-700">' + b.p99_ms + 'ms</td>';
-          html += '<td class="py-2.5 text-sm text-gray-700">' + b.stddev_ms + '</td>';
-          html += '<td class="py-2.5 text-sm text-gray-700"><strong>' + b.ops_per_sec.toLocaleString() + '</strong></td>';
-          html += '<td class="py-2.5">' + sparkline(b.histogram, color) + '</td></tr>';
-        }
-        html += '</tbody></table></div>';
-        html += '</div>';
-
-        document.getElementById('benchResults').innerHTML = html;
-
-        var canvas = document.getElementById('benchCanvas');
-        if (canvas && benchmarks.length > 0) {
-          if (benchChart) benchChart.destroy();
-          var labels = [];
-          var avgData = [];
-          var bgColors = [];
-          for (var i = 0; i < benchmarks.length; i++) {
-            labels.push(benchmarks[i].name);
-            avgData.push(benchmarks[i].avg_ms);
-            bgColors.push(DB_COLORS[benchmarks[i].name] || '#4F7BEF');
-          }
-          benchChart = new Chart(canvas, {
-            type: 'bar',
-            data: {
-              labels: labels,
-              datasets: [{
-                label: 'Avg Latency (ms)',
-                data: avgData,
-                backgroundColor: function(ctx) {
-                  return bgColors[ctx.dataIndex] + 'e6';
-                },
-                borderColor: 'transparent',
-                borderWidth: 0,
-                borderRadius: 8,
-                borderSkipped: false,
-                barPercentage: 0.7,
-                categoryPercentage: 0.8
-              }]
-            },
-            options: {
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { display: false },
-                tooltip: Object.assign({}, chartTooltipConfig(), {
-                  callbacks: {
-                    afterBody: function(items) {
-                      var idx = items[0].dataIndex;
-                      var b = benchmarks[idx];
-                      return [
-                        'P50: ' + b.p50_ms + 'ms',
-                        'P95: ' + b.p95_ms + 'ms',
-                        'P99: ' + b.p99_ms + 'ms',
-                        'Ops/s: ' + b.ops_per_sec.toLocaleString()
-                      ];
-                    }
-                  }
-                })
-              },
-              scales: {
-                y: {
-                  beginAtZero: true,
-                  grid: { color: '#f0f0f0', drawBorder: false },
-                  ticks: { color: '#9ca3af', font: { family: 'Inter', size: 11 } },
-                  title: { display: true, text: 'Latency (ms)', color: '#9ca3af', font: { family: 'Inter', size: 11 } }
-                },
-                x: {
-                  grid: { display: false },
-                  ticks: { color: '#9ca3af', font: { family: 'Inter', size: 11 } }
-                }
-              }
-            }
-          });
-        }
-      } catch (e) {
-        document.getElementById('benchResults').innerHTML = '<div class="bg-red-50 border border-red-200 rounded-2xl p-4 text-red-600 text-sm">Error: ' + e.message + '</div>';
-      }
-      btnIds.forEach(function(id) { var b = document.getElementById(id); if (b) b.disabled = false; });
-      activeBtn.textContent = n + ' iter';
-    }
-
-    async function runStress(c, ops) {
-      var btns = document.querySelectorAll('#tab-stress button');
-      btns.forEach(function(b) { b.disabled = true; });
-      document.getElementById('stressResults').innerHTML = '<div class="flex flex-col items-center justify-center py-16"><svg class="animate-spin w-8 h-8 text-gray-300 mb-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg><p class="text-gray-400 text-sm">Running stress test: ' + c + ' concurrent workers x ' + ops + ' operations each...</p></div>';
-      try {
-        var resp = await fetch('/api/stress?c=' + c + '&ops=' + ops);
-        var data = await resp.json();
-        var results = data.results;
-
-        var totalOps = 0;
-        var totalDuration = 0;
-        var totalErrors = 0;
-        for (var i = 0; i < results.length; i++) {
-          totalOps += results[i].total_ops;
-          totalDuration += results[i].duration_ms;
-          totalErrors += results[i].errors;
-        }
-        var errRate = totalOps > 0 ? ((totalErrors / totalOps) * 100).toFixed(2) : '0.00';
-
-        var html = '<div class="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-5">';
-        html += '<div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">';
-        html += '<div class="text-xs text-gray-400 uppercase tracking-wide mb-1">Total Operations</div>';
-        html += '<div class="text-2xl font-bold text-gray-900">' + totalOps.toLocaleString() + '</div></div>';
-        html += '<div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">';
-        html += '<div class="text-xs text-gray-400 uppercase tracking-wide mb-1">Avg Duration</div>';
-        html += '<div class="text-2xl font-bold text-gray-900">' + Math.round(totalDuration / results.length).toLocaleString() + '<span class="text-sm font-normal text-gray-300 ml-1">ms</span></div></div>';
-        html += '<div class="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">';
-        html += '<div class="text-xs text-gray-400 uppercase tracking-wide mb-1">Error Rate</div>';
-        html += '<div class="text-2xl font-bold ' + (totalErrors > 0 ? 'text-red-500' : 'text-green-500') + '">' + errRate + '%</div></div>';
-        html += '</div>';
-
-        html += '<div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">';
-        html += '<h2 class="text-sm font-semibold text-gray-800">Stress Test Results</h2>';
-        html += '<p class="text-xs text-gray-400 mb-4">' + c + ' concurrent workers x ' + data.ops_per_worker + ' ops each &middot; ' + data.timestamp + '</p>';
-
-        html += '<div style="height:200px" class="mb-6"><canvas id="stressCanvas"></canvas></div>';
-
-        html += '<div class="overflow-x-auto"><table class="w-full">';
-        html += '<thead><tr>';
-        html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-3 font-medium">Database</th>';
-        html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-3 font-medium">Total Ops</th>';
-        html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-3 font-medium">Success</th>';
-        html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-3 font-medium">Errors</th>';
-        html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-3 font-medium">Avg</th>';
-        html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-3 font-medium">P99</th>';
-        html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-3 font-medium">Duration</th>';
-        html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-3 font-medium">Ops/s</th>';
-        html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-3 font-medium">Success Rate</th>';
-        html += '</tr></thead><tbody>';
-        for (var i = 0; i < results.length; i++) {
-          var r = results[i];
-          var pct = r.total_ops ? (r.success / r.total_ops * 100) : 0;
-          var color = DB_COLORS[r.name] || '#4F7BEF';
-          var rowBg = i % 2 === 1 ? 'bg-gray-50' : 'bg-white';
-          html += '<tr class="' + rowBg + '">';
-          html += '<td class="py-2.5 text-sm text-gray-700"><span class="inline-block w-2 h-2 rounded-full mr-2" style="background:' + color + '"></span>';
-          html += '<strong>' + r.name + '</strong></td>';
-          html += '<td class="py-2.5 text-sm text-gray-700">' + r.total_ops.toLocaleString() + '</td>';
-          html += '<td class="py-2.5 text-sm text-green-600">' + r.success.toLocaleString() + '</td>';
-          html += '<td class="py-2.5 text-sm ' + (r.errors ? 'text-red-500' : 'text-gray-300') + '">' + r.errors + '</td>';
-          html += '<td class="py-2.5 text-sm text-gray-700">' + r.avg_ms + 'ms</td>';
-          html += '<td class="py-2.5 text-sm text-gray-700">' + r.p99_ms + 'ms</td>';
-          html += '<td class="py-2.5 text-sm text-gray-700">' + r.duration_ms + 'ms</td>';
-          html += '<td class="py-2.5 text-sm text-gray-700"><strong>' + r.ops_per_sec.toLocaleString() + '</strong></td>';
-          html += '<td class="py-2.5"><div class="flex items-center gap-2">';
-          html += '<div class="w-20 h-1 bg-gray-100 rounded-full overflow-hidden"><div class="h-full bg-green-400 rounded-full" style="width:' + pct.toFixed(1) + '%"></div></div>';
-          html += '<span class="text-xs text-gray-400">' + pct.toFixed(1) + '%</span></div></td></tr>';
-        }
-        html += '</tbody></table></div>';
-        html += '</div>';
-
-        document.getElementById('stressResults').innerHTML = html;
-
-        var canvas = document.getElementById('stressCanvas');
-        if (canvas && results.length > 0) {
-          if (stressChart) stressChart.destroy();
-          var labels = [];
-          var opsData = [];
-          var bgColors = [];
-          for (var i = 0; i < results.length; i++) {
-            labels.push(results[i].name);
-            opsData.push(results[i].ops_per_sec);
-            bgColors.push((DB_COLORS[results[i].name] || '#4F7BEF') + 'e6');
-          }
-          stressChart = new Chart(canvas, {
-            type: 'bar',
-            data: {
-              labels: labels,
-              datasets: [{
-                label: 'Ops/sec',
-                data: opsData,
-                backgroundColor: bgColors,
-                borderColor: 'transparent',
-                borderWidth: 0,
-                borderRadius: 8,
-                borderSkipped: false,
-                barPercentage: 0.7,
-                categoryPercentage: 0.8
-              }]
-            },
-            options: {
-              indexAxis: 'y',
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { display: false },
-                tooltip: chartTooltipConfig()
-              },
-              scales: {
-                x: {
-                  beginAtZero: true,
-                  grid: { color: '#f0f0f0', drawBorder: false },
-                  ticks: { color: '#9ca3af', font: { family: 'Inter', size: 11 } },
-                  title: { display: true, text: 'Operations / second', color: '#9ca3af', font: { family: 'Inter', size: 11 } }
-                },
-                y: {
-                  grid: { display: false },
-                  ticks: { color: '#9ca3af', font: { family: 'Inter', size: 11 } }
-                }
-              }
-            }
-          });
-        }
-      } catch (e) {
-        document.getElementById('stressResults').innerHTML = '<div class="bg-red-50 border border-red-200 rounded-2xl p-4 text-red-600 text-sm">Error: ' + e.message + '</div>';
-      }
-      btns.forEach(function(b) { b.disabled = false; });
-    }
-
-    async function loadHistory() {
-      try {
-        var resp = await fetch('/api/history');
-        var runs = await resp.json();
-        if (!runs.length) {
-          document.getElementById('historyChart').style.display = 'none';
-          document.getElementById('historyTable').innerHTML = '<div class="flex flex-col items-center justify-center py-16"><svg class="w-12 h-12 text-gray-200 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><p class="text-gray-400 text-sm">No runs recorded yet. Run a benchmark to get started.</p></div>';
+        if (!benchmarks || !benchmarks.length) {
+          status.textContent = 'No connected databases to benchmark.';
           return;
         }
 
-        document.getElementById('historyChart').style.display = '';
-        buildTrendChart(runs);
+        var statsEl = document.getElementById('bench-stats');
+        var fastest = benchmarks.slice().sort(function(a, b) { return a.avg_ms - b.avg_ms; })[0];
+        var totalOps = 0;
+        for (var i = 0; i < benchmarks.length; i++) totalOps += benchmarks[i].ops_per_sec;
+        statsEl.innerHTML =
+          '<div class="card stat-card"><div class="stat-value">' + benchmarks.length + '</div><div class="stat-label">Databases</div></div>' +
+          '<div class="card stat-card"><div class="stat-value">' + fastest.name + '</div><div class="stat-label">Fastest</div></div>' +
+          '<div class="card stat-card"><div class="stat-value">' + fastest.avg_ms + ' <span style="font-size:14px;color:#9ca3af">ms</span></div><div class="stat-label">Best Avg Latency</div></div>' +
+          '<div class="card stat-card"><div class="stat-value">' + Math.round(totalOps).toLocaleString() + '</div><div class="stat-label">Total ops/sec</div></div>';
+        statsEl.classList.remove('hidden');
 
-        var html = '<div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">';
-        html += '<div class="flex justify-between items-center mb-4">';
-        html += '<div><h2 class="text-sm font-semibold text-gray-800">Run History</h2><p class="text-xs text-gray-400">' + runs.length + ' runs recorded</p></div>';
-        html += '<button class="text-red-400 text-sm hover:text-red-600 transition-colors" onclick="clearAllHistory()">Clear History</button></div>';
-        html += '<div class="overflow-x-auto"><table class="w-full">';
-        html += '<thead><tr>';
-        html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-3 font-medium">#</th>';
-        html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-3 font-medium">Type</th>';
-        html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-3 font-medium">Mode</th>';
-        html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-3 font-medium">Timestamp</th>';
-        html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-3 font-medium">Summary</th>';
-        html += '</tr></thead><tbody>';
-        for (var i = 0; i < runs.length; i++) {
-          var r = runs[i];
-          var summary = '';
-          if (r.type === 'bench' && r.data.benchmarks) {
-            var names = [];
-            for (var j = 0; j < r.data.benchmarks.length; j++) {
-              names.push(r.data.benchmarks[j].name + ' ' + r.data.benchmarks[j].ops_per_sec + ' ops/s');
-            }
-            summary = names.join(', ');
-          } else if (r.type === 'stress' && r.data.results) {
-            var names = [];
-            for (var j = 0; j < r.data.results.length; j++) {
-              names.push(r.data.results[j].name + ' ' + r.data.results[j].ops_per_sec + ' ops/s');
-            }
-            summary = names.join(', ');
-          }
-          html += '<tr class="cursor-pointer hover:bg-gray-50 transition-colors" onclick="toggleRunDetail(' + r.id + ', this)">';
-          html += '<td class="py-2.5 text-sm text-gray-700">' + r.id + '</td>';
-          html += '<td class="py-2.5">';
-          if (r.type === 'bench') {
-            html += '<span class="inline-block bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">' + r.type + '</span>';
-          } else {
-            html += '<span class="inline-block bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full">' + r.type + '</span>';
-          }
-          html += '</td>';
-          html += '<td class="py-2.5 text-sm text-gray-700">' + r.mode + '</td>';
-          html += '<td class="py-2.5 text-xs text-gray-400">' + formatTimestamp(r.timestamp) + '</td>';
-          html += '<td class="py-2.5 text-xs max-w-[350px] overflow-hidden text-ellipsis whitespace-nowrap text-gray-400">' + summary + '</td></tr>';
-          html += '<tr class="detail-row" id="detail-' + r.id + '" style="display:none"><td colspan="5"></td></tr>';
+        renderBenchChart(benchmarks);
+        document.getElementById('bench-chart-wrap').classList.remove('hidden');
+
+        var tbl = '<thead><tr><th>Database</th><th>Avg</th><th>P50</th><th>P95</th><th>P99</th><th>Min</th><th>Max</th><th>Stddev</th><th>Ops/s</th><th>Distribution</th></tr></thead><tbody>';
+        for (var i = 0; i < benchmarks.length; i++) {
+          var b = benchmarks[i];
+          var color = DB_COLORS[b.name] || '#6b7280';
+          tbl += '<tr>' +
+            '<td><span style="color:' + color + ';font-weight:600">' + b.name + '</span></td>' +
+            '<td class="mono">' + b.avg_ms + 'ms</td>' +
+            '<td class="mono">' + b.p50_ms + 'ms</td>' +
+            '<td class="mono">' + b.p95_ms + 'ms</td>' +
+            '<td class="mono">' + b.p99_ms + 'ms</td>' +
+            '<td class="mono">' + b.min_ms + 'ms</td>' +
+            '<td class="mono">' + b.max_ms + 'ms</td>' +
+            '<td class="mono">' + b.stddev_ms + 'ms</td>' +
+            '<td class="mono" style="font-weight:600">' + Math.round(b.ops_per_sec).toLocaleString() + '</td>' +
+            '<td>' + makeSparkline(b.histogram) + '</td>' +
+          '</tr>';
         }
-        html += '</tbody></table></div>';
-        html += '</div>';
-        document.getElementById('historyTable').innerHTML = html;
-        document.getElementById('historyDetail').innerHTML = '';
-        expandedRunId = null;
-      } catch (e) {
-        document.getElementById('historyTable').innerHTML = '<div class="bg-red-50 border border-red-200 rounded-2xl p-4 text-red-600 text-sm">Error: ' + e.message + '</div>';
-      }
+        tbl += '</tbody>';
+        document.getElementById('bench-table').innerHTML = tbl;
+        document.getElementById('bench-table-wrap').classList.remove('hidden');
+      }).catch(function(err) {
+        status.textContent = 'Error: ' + err.message;
+      });
     }
 
-    function formatTimestamp(ts) {
-      try {
-        var d = new Date(ts);
-        var now = new Date();
-        var hours = String(d.getHours()).length < 2 ? '0' + d.getHours() : String(d.getHours());
-        var mins = String(d.getMinutes()).length < 2 ? '0' + d.getMinutes() : String(d.getMinutes());
-        if (d.toDateString() === now.toDateString()) return hours + ':' + mins;
-        var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        return months[d.getMonth()] + ' ' + d.getDate() + ' ' + hours + ':' + mins;
-      } catch (e) { return ts; }
-    }
-
-    function buildTrendChart(runs) {
-      var canvas = document.getElementById('trendCanvas');
-      if (!canvas) return;
-      if (trendChart) trendChart.destroy();
-
-      var dbNames = ['PostgreSQL', 'MySQL', 'MariaDB', 'Redis'];
-      var series = {};
-      for (var d = 0; d < dbNames.length; d++) {
-        series[dbNames[d]] = [];
-      }
+    function renderBenchChart(benchmarks) {
+      var ctx = document.getElementById('bench-chart').getContext('2d');
+      if (benchChart) benchChart.destroy();
       var labels = [];
-
-      var chronological = runs.slice().reverse();
-      for (var i = 0; i < chronological.length; i++) {
-        var r = chronological[i];
-        labels.push(formatTimestamp(r.timestamp));
-        var items = r.type === 'bench' ? (r.data.benchmarks || []) : (r.data.results || []);
-        var found = {};
-        for (var j = 0; j < items.length; j++) {
-          found[items[j].name] = items[j].ops_per_sec;
-        }
-        for (var d = 0; d < dbNames.length; d++) {
-          series[dbNames[d]].push(found[dbNames[d]] !== undefined ? found[dbNames[d]] : null);
-        }
+      var avgData = [];
+      var p95Data = [];
+      var p99Data = [];
+      var colors = [];
+      for (var i = 0; i < benchmarks.length; i++) {
+        labels.push(benchmarks[i].name);
+        avgData.push(benchmarks[i].avg_ms);
+        p95Data.push(benchmarks[i].p95_ms);
+        p99Data.push(benchmarks[i].p99_ms);
+        colors.push(DB_COLORS[benchmarks[i].name] || '#6b7280');
       }
-
-      var datasets = [];
-      for (var d = 0; d < dbNames.length; d++) {
-        var name = dbNames[d];
-        var hasData = false;
-        for (var k = 0; k < series[name].length; k++) {
-          if (series[name][k] !== null) { hasData = true; break; }
-        }
-        if (!hasData) continue;
-        datasets.push({
-          label: name,
-          data: series[name],
-          borderColor: DB_COLORS[name],
-          backgroundColor: DB_COLORS[name] + '14',
-          tension: 0.3,
-          pointRadius: 0,
-          pointHoverRadius: 4,
-          pointHoverBackgroundColor: DB_COLORS[name],
-          spanGaps: true,
-          fill: true,
-          borderWidth: 2
-        });
-      }
-
-      trendChart = new Chart(canvas, {
-        type: 'line',
-        data: { labels: labels, datasets: datasets },
+      benchChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: 'Avg (ms)', data: avgData, backgroundColor: colors, borderRadius: 6 },
+            { label: 'P95 (ms)', data: p95Data, backgroundColor: colors.map(function(c) { return c + '88'; }), borderRadius: 6 },
+            { label: 'P99 (ms)', data: p99Data, backgroundColor: colors.map(function(c) { return c + '44'; }), borderRadius: 6 }
+          ]
+        },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
-          plugins: {
-            legend: {
-              labels: { color: '#6b7280', usePointStyle: true, pointStyle: 'circle', font: { family: 'Inter', size: 11 }, padding: 16 }
-            },
-            tooltip: chartTooltipConfig()
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              grid: { color: '#f0f0f0', drawBorder: false },
-              ticks: { color: '#9ca3af', font: { family: 'Inter', size: 11 } },
-              title: { display: true, text: 'Ops/sec', color: '#9ca3af', font: { family: 'Inter', size: 11 } }
-            },
-            x: {
-              grid: { color: '#f5f5f5', drawBorder: false },
-              ticks: { color: '#9ca3af', maxRotation: 45, font: { family: 'Inter', size: 10 } }
-            }
-          }
+          plugins: { legend: { position: 'top', labels: { usePointStyle: true, font: { family: 'Inter', size: 12 } } } },
+          scales: { y: { beginAtZero: true, title: { display: true, text: 'Latency (ms)', font: { family: 'Inter' } }, grid: { color: '#f3f4f6' } }, x: { grid: { display: false } } }
         }
       });
     }
 
-    async function toggleRunDetail(id, rowEl) {
-      var detailRow = document.getElementById('detail-' + id);
-      if (!detailRow) return;
-      if (expandedRunId === id) {
-        detailRow.style.display = 'none';
-        expandedRunId = null;
+    function runStress(c, ops) {
+      var status = document.getElementById('stress-status');
+      status.innerHTML = '<span class="spinner"></span> Running stress test (' + c + ' workers x ' + ops + ' ops)...';
+      document.getElementById('stress-stats').classList.add('hidden');
+      document.getElementById('stress-chart-wrap').classList.add('hidden');
+      document.getElementById('stress-table-wrap').classList.add('hidden');
+
+      fetch('/api/stress?c=' + c + '&ops=' + ops).then(function(r) { return r.json(); }).then(function(data) {
+        var results = data.results;
+        if (!results || !results.length) {
+          status.textContent = 'No connected databases to stress test.';
+          return;
+        }
+        status.textContent = 'Completed: ' + data.concurrency + ' workers x ' + data.ops_per_worker + ' ops';
+
+        var totalOps = 0; var totalSuccess = 0; var totalErrors = 0;
+        for (var i = 0; i < results.length; i++) {
+          totalOps += results[i].total_ops;
+          totalSuccess += results[i].success;
+          totalErrors += results[i].errors;
+        }
+        var statsEl = document.getElementById('stress-stats');
+        statsEl.innerHTML =
+          '<div class="card stat-card"><div class="stat-value">' + totalOps + '</div><div class="stat-label">Total Operations</div></div>' +
+          '<div class="card stat-card"><div class="stat-value" style="color:#22c55e">' + totalSuccess + '</div><div class="stat-label">Successful</div></div>' +
+          '<div class="card stat-card"><div class="stat-value" style="color:' + (totalErrors > 0 ? '#E84D3D' : '#22c55e') + '">' + totalErrors + '</div><div class="stat-label">Errors</div></div>' +
+          '<div class="card stat-card"><div class="stat-value">' + data.concurrency + '</div><div class="stat-label">Concurrency</div></div>';
+        statsEl.classList.remove('hidden');
+
+        renderStressChart(results);
+        document.getElementById('stress-chart-wrap').classList.remove('hidden');
+
+        var tbl = '<thead><tr><th>Database</th><th>Total</th><th>Success</th><th>Errors</th><th>Avg</th><th>P99</th><th>Ops/s</th><th>Duration</th><th>Success Rate</th></tr></thead><tbody>';
+        for (var i = 0; i < results.length; i++) {
+          var r = results[i];
+          var color = DB_COLORS[r.name] || '#6b7280';
+          var pct = r.total_ops > 0 ? Math.round((r.success / r.total_ops) * 100) : 0;
+          tbl += '<tr>' +
+            '<td><span style="color:' + color + ';font-weight:600">' + r.name + '</span></td>' +
+            '<td class="mono">' + r.total_ops + '</td>' +
+            '<td class="mono" style="color:#22c55e">' + r.success + '</td>' +
+            '<td class="mono" style="color:' + (r.errors > 0 ? '#E84D3D' : '#22c55e') + '">' + r.errors + '</td>' +
+            '<td class="mono">' + r.avg_ms + 'ms</td>' +
+            '<td class="mono">' + r.p99_ms + 'ms</td>' +
+            '<td class="mono" style="font-weight:600">' + Math.round(r.ops_per_sec).toLocaleString() + '</td>' +
+            '<td class="mono">' + (r.duration_ms / 1000).toFixed(1) + 's</td>' +
+            '<td>' + makeProgressBar(pct, color) + ' <span class="text-xs mono">' + pct + '%</span></td>' +
+          '</tr>';
+        }
+        tbl += '</tbody>';
+        document.getElementById('stress-table').innerHTML = tbl;
+        document.getElementById('stress-table-wrap').classList.remove('hidden');
+      }).catch(function(err) {
+        status.textContent = 'Error: ' + err.message;
+      });
+    }
+
+    function renderStressChart(results) {
+      var ctx = document.getElementById('stress-chart').getContext('2d');
+      if (stressChart) stressChart.destroy();
+      var labels = [];
+      var opsData = [];
+      var colors = [];
+      for (var i = 0; i < results.length; i++) {
+        labels.push(results[i].name);
+        opsData.push(results[i].ops_per_sec);
+        colors.push(DB_COLORS[results[i].name] || '#6b7280');
+      }
+      stressChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{ label: 'Ops/sec', data: opsData, backgroundColor: colors, borderRadius: 6 }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { x: { beginAtZero: true, title: { display: true, text: 'Operations per second', font: { family: 'Inter' } }, grid: { color: '#f3f4f6' } }, y: { grid: { display: false } } }
+        }
+      });
+    }
+
+    function loadHistory() {
+      fetch('/api/history').then(function(r) { return r.json(); }).then(function(rows) {
+        var countEl = document.getElementById('history-count');
+        var tableWrap = document.getElementById('history-table-wrap');
+        var emptyEl = document.getElementById('history-empty');
+        var chartWrap = document.getElementById('history-chart-wrap');
+
+        if (!rows || !rows.length) {
+          countEl.textContent = '';
+          tableWrap.classList.add('hidden');
+          chartWrap.classList.add('hidden');
+          emptyEl.classList.remove('hidden');
+          return;
+        }
+        emptyEl.classList.add('hidden');
+        countEl.textContent = rows.length + ' runs';
+
+        renderHistoryChart(rows);
+        chartWrap.classList.remove('hidden');
+
+        var tbl = '<thead><tr><th>#</th><th>Type</th><th>Mode</th><th>Time</th><th>Summary</th><th></th></tr></thead><tbody>';
+        for (var i = 0; i < rows.length; i++) {
+          var row = rows[i];
+          var summary = '';
+          if (row.type === 'bench' && row.data.benchmarks) {
+            summary = row.data.benchmarks.length + ' DBs, ' + row.data.iterations + ' iterations';
+          } else if (row.type === 'stress' && row.data.results) {
+            summary = row.data.results.length + ' DBs, ' + row.data.concurrency + ' workers';
+          }
+          var badgeCls = row.type === 'bench' ? 'badge-blue' : 'badge-orange';
+          var ts = new Date(row.timestamp);
+          var timeStr = ts.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'}) + ' ' + ts.toLocaleDateString([], {month: 'short', day: 'numeric'});
+          tbl += '<tr class="expand-row" onclick="toggleDetail(' + row.id + ')">' +
+            '<td class="mono text-muted">' + row.id + '</td>' +
+            '<td><span class="badge ' + badgeCls + '">' + row.type + '</span></td>' +
+            '<td>' + row.mode + '</td>' +
+            '<td class="text-muted text-xs">' + timeStr + '</td>' +
+            '<td class="text-sm">' + summary + '</td>' +
+            '<td class="text-muted text-xs">expand</td>' +
+          '</tr>' +
+          '<tr class="expand-detail hidden" id="detail-' + row.id + '"><td colspan="6"><pre class="mono text-xs" style="white-space:pre-wrap;max-height:200px;overflow:auto;padding:8px;background:#f9fafb;border-radius:8px">' + JSON.stringify(row.data, null, 2) + '</pre></td></tr>';
+        }
+        tbl += '</tbody>';
+        document.getElementById('history-table').innerHTML = tbl;
+        tableWrap.classList.remove('hidden');
+      });
+    }
+
+    function renderHistoryChart(rows) {
+      var ctx = document.getElementById('history-chart').getContext('2d');
+      if (historyChart) historyChart.destroy();
+      var benchRows = rows.filter(function(r) { return r.type === 'bench'; }).reverse();
+      if (benchRows.length < 2) {
+        document.getElementById('history-chart-wrap').classList.add('hidden');
         return;
       }
-      if (expandedRunId !== null) {
-        var prev = document.getElementById('detail-' + expandedRunId);
-        if (prev) prev.style.display = 'none';
-      }
-      expandedRunId = id;
-      var cell = detailRow.querySelector('td');
-      cell.innerHTML = '<div class="flex justify-center py-4"><svg class="animate-spin w-5 h-5 text-gray-300" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg></div>';
-      detailRow.style.display = '';
-      try {
-        var resp = await fetch('/api/history/' + id);
-        var run = await resp.json();
-        var html = '<div class="bg-gray-50 rounded-xl p-4 my-2">';
-        html += '<div class="mb-3">';
-        if (run.type === 'bench') {
-          html += '<span class="inline-block bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full mr-2">' + run.type + '</span>';
-        } else {
-          html += '<span class="inline-block bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full mr-2">' + run.type + '</span>';
+      var labels = benchRows.map(function(r) { return '#' + r.id; });
+      var datasets = {};
+      for (var i = 0; i < benchRows.length; i++) {
+        var bms = benchRows[i].data.benchmarks || [];
+        for (var j = 0; j < bms.length; j++) {
+          if (!datasets[bms[j].name]) datasets[bms[j].name] = [];
         }
-        html += '<span class="text-xs text-gray-400">Mode: ' + run.mode + ' &middot; ' + run.timestamp + '</span></div>';
-
-        if (run.type === 'bench' && run.data.benchmarks) {
-          var benchmarks = run.data.benchmarks;
-          html += '<div class="overflow-x-auto"><table class="w-full">';
-          html += '<thead><tr>';
-          html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-2 font-medium">Database</th>';
-          html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-2 font-medium">Avg</th>';
-          html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-2 font-medium">P50</th>';
-          html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-2 font-medium">P95</th>';
-          html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-2 font-medium">P99</th>';
-          html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-2 font-medium">Stddev</th>';
-          html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-2 font-medium">Ops/s</th>';
-          html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-2 font-medium">Iterations</th>';
-          html += '</tr></thead><tbody>';
-          for (var i = 0; i < benchmarks.length; i++) {
-            var b = benchmarks[i];
-            html += '<tr><td class="py-2 text-sm"><span class="inline-block w-2 h-2 rounded-full mr-2" style="background:' + (DB_COLORS[b.name] || '#4F7BEF') + '"></span><strong class="text-gray-700">' + b.name + '</strong></td>';
-            html += '<td class="py-2 text-sm text-gray-700">' + b.avg_ms + 'ms</td><td class="py-2 text-sm text-gray-700">' + b.p50_ms + 'ms</td><td class="py-2 text-sm text-gray-700">' + b.p95_ms + 'ms</td>';
-            html += '<td class="py-2 text-sm text-gray-700">' + b.p99_ms + 'ms</td><td class="py-2 text-sm text-gray-700">' + b.stddev_ms + '</td>';
-            html += '<td class="py-2 text-sm text-gray-700"><strong>' + b.ops_per_sec.toLocaleString() + '</strong></td>';
-            html += '<td class="py-2 text-sm text-gray-700">' + b.iterations + '</td></tr>';
-          }
-          html += '</tbody></table></div>';
-        } else if (run.type === 'stress' && run.data.results) {
-          var results = run.data.results;
-          html += '<div class="overflow-x-auto"><table class="w-full">';
-          html += '<thead><tr>';
-          html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-2 font-medium">Database</th>';
-          html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-2 font-medium">Total Ops</th>';
-          html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-2 font-medium">Success</th>';
-          html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-2 font-medium">Errors</th>';
-          html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-2 font-medium">Avg</th>';
-          html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-2 font-medium">P99</th>';
-          html += '<th class="text-left text-xs text-gray-400 uppercase tracking-wide pb-2 font-medium">Ops/s</th>';
-          html += '</tr></thead><tbody>';
-          for (var i = 0; i < results.length; i++) {
-            var r = results[i];
-            html += '<tr><td class="py-2 text-sm"><span class="inline-block w-2 h-2 rounded-full mr-2" style="background:' + (DB_COLORS[r.name] || '#4F7BEF') + '"></span><strong class="text-gray-700">' + r.name + '</strong></td>';
-            html += '<td class="py-2 text-sm text-gray-700">' + r.total_ops + '</td>';
-            html += '<td class="py-2 text-sm text-green-600">' + r.success + '</td>';
-            html += '<td class="py-2 text-sm ' + (r.errors ? 'text-red-500' : 'text-gray-300') + '">' + r.errors + '</td>';
-            html += '<td class="py-2 text-sm text-gray-700">' + r.avg_ms + 'ms</td><td class="py-2 text-sm text-gray-700">' + r.p99_ms + 'ms</td>';
-            html += '<td class="py-2 text-sm text-gray-700"><strong>' + r.ops_per_sec.toLocaleString() + '</strong></td></tr>';
-          }
-          html += '</tbody></table></div>';
-        }
-
-        html += '</div>';
-        cell.innerHTML = html;
-      } catch (e) {
-        cell.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-xl p-4 text-red-600 text-sm my-2">Error: ' + e.message + '</div>';
       }
+      for (var i = 0; i < benchRows.length; i++) {
+        var bms = benchRows[i].data.benchmarks || [];
+        var byName = {};
+        for (var j = 0; j < bms.length; j++) byName[bms[j].name] = bms[j].avg_ms;
+        for (var name in datasets) {
+          datasets[name].push(byName[name] !== undefined ? byName[name] : null);
+        }
+      }
+      var chartDatasets = [];
+      for (var name in datasets) {
+        chartDatasets.push({
+          label: name,
+          data: datasets[name],
+          borderColor: DB_COLORS[name] || '#6b7280',
+          backgroundColor: (DB_COLORS[name] || '#6b7280') + '22',
+          fill: true,
+          tension: 0.3,
+          pointRadius: 3
+        });
+      }
+      historyChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels: labels, datasets: chartDatasets },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { position: 'top', labels: { usePointStyle: true, font: { family: 'Inter', size: 12 } } } },
+          scales: { y: { beginAtZero: true, title: { display: true, text: 'Avg Latency (ms)', font: { family: 'Inter' } }, grid: { color: '#f3f4f6' } }, x: { grid: { display: false } } }
+        }
+      });
     }
 
-    async function clearAllHistory() {
+    function toggleDetail(id) {
+      var detail = document.getElementById('detail-' + id);
+      if (detail) detail.classList.toggle('hidden');
+    }
+
+    function clearHist() {
       if (!confirm('Clear all history?')) return;
-      await fetch('/api/history', { method: 'DELETE' });
-      loadHistory();
+      fetch('/api/history', { method: 'DELETE' }).then(function() { loadHistory(); });
     }
 
-    runTest().catch(function(err) {
-      document.getElementById('cards').innerHTML = '<div class="bg-red-50 border border-red-200 rounded-xl p-4 text-red-600 text-sm col-span-full">Init error: ' + err.message + ' | ' + err.stack + '</div>';
-    });
+    testConnections();
+
     window.onerror = function(msg, url, line) {
       var el = document.getElementById('cards');
-      if (el) el.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-xl p-4 text-red-600 text-sm col-span-full">JS Error: ' + msg + ' at line ' + line + '</div>';
+      if (el) el.innerHTML = '<div class="card" style="grid-column:1/-1;color:#E84D3D;padding:16px">JS Error: ' + msg + ' at line ' + line + '</div>';
     };
   <\/script>
 </body>
