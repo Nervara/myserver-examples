@@ -462,11 +462,9 @@ function renderDashboard(): string {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Database Performance Observatory | myserver</title>
-  <script src="https://cdn.tailwindcss.com"><\/script>
   <link href="https://cdn.jsdelivr.net/npm/daisyui@4/dist/full.min.css" rel="stylesheet">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','system-ui','sans-serif']}}}}<\/script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"><\/script>
   <style>
     .spark { display: inline-flex; align-items: flex-end; gap: 1px; height: 22px; }
