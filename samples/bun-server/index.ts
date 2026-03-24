@@ -595,6 +595,7 @@ function renderDashboard(): string {
         <div class="flex items-center gap-8 flex-wrap">
           <span class="pill">Bun ${Bun.version}</span>
           <span class="pill">${process.platform}/${process.arch}</span>
+          <span class="pill" style="background:var(--badge-blue-bg);color:var(--badge-blue)">Server #${process.env.MYSERVER_SERVER_ID || "?"}</span>
           <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn" title="Toggle dark mode"></button>
         </div>
       </div>
