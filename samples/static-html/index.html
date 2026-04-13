@@ -3,197 +3,616 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Raw HTML | myserver V2 Brutal</title>
+    <title>Learners Dashboard | Tailwind CSS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;700;900&display=swap');
-
-        :root {
-            --black: #000;
-            --white: #fff;
-            --yellow: #facc15;
-            --red: #ef4444;
-        }
-
         body {
-            margin: 0;
-            padding: 0;
-            background-color: var(--yellow);
-            color: var(--black);
-            font-family: 'Inter', sans-serif;
-            overflow-x: hidden;
-            border: 20px solid var(--black);
-            min-height: calc(100vh - 40px);
-            box-sizing: border-box;
-            background-image: radial-gradient(var(--black) 2px, transparent 2px);
-            background-size: 30px 30px;
+            font-family: "Plus Jakarta Sans", system-ui, sans-serif;
         }
 
-        .marquee-container {
-            border-bottom: 5px solid var(--black);
-            background: var(--white);
-            overflow: hidden;
-            white-space: nowrap;
-            padding: 10px 0;
+        .scrollbar-hidden::-webkit-scrollbar {
+            display: none;
         }
 
-        .marquee {
-            display: inline-block;
-            font-family: 'Anton', sans-serif;
-            font-size: 2vw;
-            text-transform: uppercase;
-            animation: scroll 15s linear infinite;
-        }
-
-        @keyframes scroll {
-            0% { transform: translateX(100%); }
-            100% { transform: translateX(-100%); }
-        }
-
-        .hero {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            min-height: 70vh;
-            border-bottom: 10px solid var(--black);
-        }
-
-        .hero-text {
-            padding: 5vw;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            border-right: 10px solid var(--black);
-            background: var(--white);
-        }
-
-        h1 {
-            font-family: 'Anton', sans-serif;
-            font-size: 15vw;
-            line-height: 0.85;
-            margin: 0;
-            text-transform: uppercase;
-            position: relative;
-        }
-
-        h1::after {
-            content: '';
-            position: absolute;
-            bottom: -20px;
-            left: 0;
-            width: 100px;
-            height: 15px;
-            background: var(--red);
-        }
-
-        .hero-visual {
-            background: var(--black);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .big-circle {
-            width: 40vw;
-            height: 40vw;
-            background: var(--red);
-            border-radius: 50%;
-            position: absolute;
-            animation: pulse-brutal 2s infinite steps(2);
-        }
-
-        @keyframes pulse-brutal {
-            0% { transform: scale(1); background: var(--red); }
-            50% { transform: scale(1.1); background: var(--yellow); }
-            100% { transform: scale(1); background: var(--red); }
-        }
-
-        .feature-banner {
-            background: var(--black);
-            color: var(--white);
-            padding: 2rem;
-            text-align: center;
-            font-family: 'Anton', sans-serif;
-            font-size: 4vw;
-            text-transform: uppercase;
-            letter-spacing: 5px;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            border-bottom: 10px solid var(--black);
-        }
-
-        .card {
-            padding: 3rem;
-            border-right: 5px solid var(--black);
-            background: var(--white);
-            transition: all 0.1s;
-        }
-        .card:last-child { border-right: none; }
-        .card:hover {
-            background: var(--black);
-            color: var(--white);
-            cursor: crosshair;
-        }
-
-        .card-number {
-            font-family: 'Anton', sans-serif;
-            font-size: 5rem;
-            margin: 0;
-            line-height: 1;
-            color: var(--red);
-        }
-
-        .card-title {
-            font-weight: 900;
-            font-size: 2rem;
-            margin: 1rem 0;
-            text-transform: uppercase;
+        .scrollbar-hidden {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
         }
     </style>
 </head>
-<body>
-    <div class="marquee-container">
-        <div class="marquee">
-            STATIC HTML DEMO /// ZERO CONFIGURATION /// MYSERVER V2 /// DEPLOYED IN SECONDS /// BLAZING FAST /// 100 LIGHTHOUSE ///
-        </div>
-    </div>
+<body class="bg-[#f3f3f6] text-[#15151d] antialiased">
+    <main class="mx-auto flex min-h-screen items-center justify-center px-8 py-10">
+        <div class="flex h-[calc(100vh-80px)] min-h-[920px] w-full max-w-[1720px] overflow-hidden rounded-[34px] bg-white shadow-[0_30px_90px_rgba(15,23,42,0.08)]">
+            <aside class="flex w-[68px] shrink-0 flex-col items-center justify-between border-r border-[#ececf2] bg-white px-3 py-5">
+                <div class="flex flex-col items-center gap-6">
+                    <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#f4f2ff]">
+                        <svg viewBox="0 0 32 32" class="h-7 w-7" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M7 8H15V13C15 15.2091 13.2091 17 11 17H7V8Z" fill="#6556FF"/>
+                            <path d="M17 15H25V24C25 26.2091 23.2091 28 21 28H17V15Z" fill="#6556FF"/>
+                            <path d="M15 4H23V12C23 14.2091 21.2091 16 19 16H15V4Z" fill="#A49BFF"/>
+                            <path d="M9 17H17V25C17 27.2091 15.2091 29 13 29H9V17Z" fill="#5241FF"/>
+                        </svg>
+                    </div>
 
-    <div class="hero">
-        <div class="hero-text">
-            <h1>RAW<br>HTML</h1>
-            <p style="font-size: 2rem; font-weight: 700; max-width: 600px; margin-top: 40px; border-left: 10px solid var(--yellow); padding-left: 20px;">
-                NO FRAMEWORKS.<br>NO BUILD STEPS.<br>JUST PURE PERFORMANCE.
-            </p>
-        </div>
-        <div class="hero-visual">
-            <div class="big-circle"></div>
-            <h2 style="color: var(--white); font-family: 'Anton'; font-size: 8vw; z-index: 10; mix-blend-mode: difference;">BRUTAL</h2>
-        </div>
-    </div>
+                    <nav class="flex flex-col gap-3">
+                        <button class="flex h-11 w-11 items-center justify-center rounded-2xl text-[#17171d] transition hover:bg-[#f3f4f6]">
+                            <svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 11.5L12 4L21 11.5"/>
+                                <path d="M5.5 10.5V20H18.5V10.5"/>
+                            </svg>
+                        </button>
+                        <button class="flex h-11 w-11 items-center justify-center rounded-2xl text-[#17171d] transition hover:bg-[#f3f4f6]">
+                            <svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="11" cy="11" r="7"/>
+                                <path d="M20 20L16.6 16.6"/>
+                            </svg>
+                        </button>
+                        <button class="flex h-11 w-11 items-center justify-center rounded-2xl text-[#17171d] transition hover:bg-[#f3f4f6]">
+                            <svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="4" y="4" width="16" height="16" rx="2"/>
+                                <path d="M7.5 14.5L10.5 11.5L13 14L16.5 9.5"/>
+                            </svg>
+                        </button>
+                        <button class="flex h-11 w-11 items-center justify-center rounded-2xl text-[#17171d] transition hover:bg-[#f3f4f6]">
+                            <svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M4 6.5H20"/>
+                                <path d="M4 12H20"/>
+                                <path d="M4 17.5H20"/>
+                            </svg>
+                        </button>
+                        <button class="flex h-11 w-11 items-center justify-center rounded-2xl text-[#17171d] transition hover:bg-[#f3f4f6]">
+                            <svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M6 4H18L19.5 8H4.5L6 4Z"/>
+                                <path d="M5 8V18L12 15L19 18V8"/>
+                            </svg>
+                        </button>
+                        <button class="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#f3f4f6] text-[#17171d] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.03)] transition hover:bg-[#eceef3]">
+                            <svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 3V12H21"/>
+                                <path d="M12 12L5.2 5.2"/>
+                                <path d="M12 12L12 21"/>
+                                <path d="M12 12L4 15.5"/>
+                            </svg>
+                        </button>
+                        <button class="flex h-11 w-11 items-center justify-center rounded-2xl text-[#17171d] transition hover:bg-[#f3f4f6]">
+                            <svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M8 5H16L18.5 8V19H5.5V8L8 5Z"/>
+                                <path d="M9 9H15"/>
+                            </svg>
+                        </button>
+                    </nav>
+                </div>
 
-    <div class="feature-banner">
-        SERVED VIA NGINX & ALPINE LINUX
-    </div>
+                <div class="flex flex-col items-center gap-3">
+                    <button class="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#6556ff] text-white shadow-[0_14px_24px_rgba(101,86,255,0.32)] transition hover:bg-[#5b4dff]">
+                        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 5V19"/>
+                            <path d="M5 12H19"/>
+                        </svg>
+                    </button>
+                    <button class="flex h-11 w-11 items-center justify-center rounded-full bg-[#ffcc29] text-[#17171d] shadow-[0_10px_18px_rgba(255,204,41,0.22)]">
+                        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M13 3L7 13H12L11 21L17 11H12L13 3Z"/>
+                        </svg>
+                    </button>
+                    <button class="flex h-11 w-11 items-center justify-center rounded-2xl text-[#17171d] transition hover:bg-[#f3f4f6]">
+                        <svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M6 17.5H4.5V7.5H19.5V17.5H11L8 20V17.5H6Z"/>
+                            <path d="M8 11H16"/>
+                        </svg>
+                    </button>
+                    <button class="flex h-11 w-11 items-center justify-center rounded-2xl text-[#17171d] transition hover:bg-[#f3f4f6]">
+                        <svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="12" cy="12" r="3.5"/>
+                            <path d="M19.4 15A1 1 0 0 0 19.6 16.1L19.6 16.1A1 1 0 0 1 19.4 17.3L17.7 19A1 1 0 0 1 16.5 19.2L16.5 19.2A1 1 0 0 0 15.4 19L14.5 18.6A1 1 0 0 0 13.9 19.4V21A1 1 0 0 1 12.9 22H11.1A1 1 0 0 1 10.1 21V19.4A1 1 0 0 0 9.5 18.6L8.6 19A1 1 0 0 0 7.5 19.2L7.5 19.2A1 1 0 0 1 6.3 19L4.6 17.3A1 1 0 0 1 4.4 16.1L4.4 16.1A1 1 0 0 0 4.6 15L4.2 14.1A1 1 0 0 0 3.4 13.5H2A1 1 0 0 1 1 12.5V10.7A1 1 0 0 1 2 9.7H3.4A1 1 0 0 0 4.2 9.1L4.6 8.2A1 1 0 0 0 4.4 7.1L4.4 7.1A1 1 0 0 1 4.6 5.9L6.3 4.2A1 1 0 0 1 7.5 4L7.5 4A1 1 0 0 0 8.6 4.2L9.5 4.6A1 1 0 0 0 10.1 3.8V2A1 1 0 0 1 11.1 1H12.9A1 1 0 0 1 13.9 2V3.8A1 1 0 0 0 14.5 4.6L15.4 4.2A1 1 0 0 0 16.5 4L16.5 4A1 1 0 0 1 17.7 4.2L19.4 5.9A1 1 0 0 1 19.6 7.1L19.6 7.1A1 1 0 0 0 19.4 8.2L19.8 9.1A1 1 0 0 0 20.6 9.7H22A1 1 0 0 1 23 10.7V12.5A1 1 0 0 1 22 13.5H20.6A1 1 0 0 0 19.8 14.1L19.4 15Z"/>
+                        </svg>
+                    </button>
+                    <div class="mt-1 flex h-11 w-11 items-center justify-center rounded-full border border-[#e7d46d] bg-[#ffe77a] text-[16px] font-bold text-[#44411f] shadow-[inset_0_-4px_10px_rgba(255,255,255,0.4)]">RF</div>
+                </div>
+            </aside>
 
-    <div class="grid">
-        <div class="card">
-            <p class="card-number">01</p>
-            <p class="card-title">Speed</p>
-            <p style="font-size: 1.2rem; font-weight: 600;">Instant load times. No JS parsing bottlenecks. Direct asset delivery.</p>
+            <aside class="relative flex w-[286px] shrink-0 flex-col border-r border-[#ececf2] bg-[#fcfcfd] px-6 py-8">
+                <button class="absolute -right-5 top-7 flex h-10 w-10 items-center justify-center rounded-full border border-[#e6e6ed] bg-white text-[#17171d] shadow-[0_12px_24px_rgba(15,23,42,0.08)]">
+                    <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M15 18L9 12L15 6"/>
+                        <path d="M9 12H21"/>
+                    </svg>
+                </button>
+
+                <h2 class="text-[20px] font-bold tracking-[-0.02em]">Reports</h2>
+
+                <div class="mt-7 space-y-2 text-[15px]">
+                    <button class="flex w-full items-center gap-3 rounded-2xl bg-[#f1f1f4] px-4 py-3 text-left font-semibold text-[#17171d] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.02)]">
+                        <span class="flex h-8 w-8 items-center justify-center rounded-xl border border-[#e6e6ed] bg-white text-[#17171d]">
+                            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 5.5A4 4 0 1 0 12 13.5A4 4 0 1 0 12 5.5Z"/>
+                                <path d="M5.5 18A6.5 6.5 0 0 1 18.5 18"/>
+                            </svg>
+                        </span>
+                        Learners
+                    </button>
+                    <button class="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left font-medium text-[#53535f] transition hover:bg-[#f5f5f8]">
+                        <span class="flex h-8 w-8 items-center justify-center rounded-xl text-[#53535f]">
+                            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 3L14.6 8.3L20.5 9.1L16.2 13.2L17.2 19L12 16.2L6.8 19L7.8 13.2L3.5 9.1L9.4 8.3L12 3Z"/>
+                            </svg>
+                        </span>
+                        Leaderboards
+                    </button>
+                    <button class="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left font-medium text-[#53535f] transition hover:bg-[#f5f5f8]">
+                        <span class="flex h-8 w-8 items-center justify-center rounded-xl text-[#53535f]">
+                            <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 5.5A4 4 0 1 0 12 13.5A4 4 0 1 0 12 5.5Z"/>
+                                <path d="M4 19A8 8 0 0 1 20 19"/>
+                            </svg>
+                        </span>
+                        Users
+                    </button>
+                </div>
+
+                <div class="mt-8 border-t border-[#efeff5] pt-8">
+                    <button class="flex w-full items-center justify-between text-[15px] font-semibold text-[#26262e]">
+                        <span>Learning content</span>
+                        <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M6 9L12 15L18 9"/>
+                        </svg>
+                    </button>
+
+                    <div class="mt-4 space-y-3 text-[15px] font-medium text-[#565660]">
+                        <button class="flex w-full items-center gap-3 rounded-2xl px-2 py-2 text-left transition hover:bg-[#f5f5f8]">
+                            <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-[#dff4ff] text-[#28a8ef]">
+                                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                    <rect x="4" y="5" width="11" height="14" rx="2"/>
+                                    <path d="M9 9H17V17"/>
+                                    <path d="M9 13H13"/>
+                                </svg>
+                            </span>
+                            Course
+                        </button>
+                        <button class="flex w-full items-center gap-3 rounded-2xl px-2 py-2 text-left transition hover:bg-[#f5f5f8]">
+                            <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-[#ffeadc] text-[#f27a2b]">
+                                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                    <rect x="6" y="4.5" width="12" height="15" rx="2"/>
+                                    <path d="M9 9H15"/>
+                                    <path d="M9 13H13"/>
+                                </svg>
+                            </span>
+                            Page
+                        </button>
+                        <button class="flex w-full items-center gap-3 rounded-2xl px-2 py-2 text-left transition hover:bg-[#f5f5f8]">
+                            <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-[#ece6ff] text-[#6b57ff]">
+                                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                    <rect x="5" y="4.5" width="14" height="15" rx="2"/>
+                                    <path d="M9 8.5H15"/>
+                                    <path d="M9 12.5H15"/>
+                                    <path d="M9 16.5H12"/>
+                                </svg>
+                            </span>
+                            Assignment
+                        </button>
+                        <button class="flex w-full items-center gap-3 rounded-2xl px-2 py-2 text-left transition hover:bg-[#f5f5f8]">
+                            <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-[#fff4d6] text-[#f6b000]">
+                                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M5 7.5C5 6.4 5.9 5.5 7 5.5H17C18.1 5.5 19 6.4 19 7.5V16.5C19 17.6 18.1 18.5 17 18.5H7C5.9 18.5 5 17.6 5 16.5V7.5Z"/>
+                                    <path d="M8.5 10.5H15.5"/>
+                                    <path d="M8.5 14H12.5"/>
+                                </svg>
+                            </span>
+                            Quiz
+                        </button>
+                        <button class="flex w-full items-center gap-3 rounded-2xl px-2 py-2 text-left transition hover:bg-[#f5f5f8]">
+                            <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-[#ffe0f5] text-[#d746a6]">
+                                <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M6 6.5H18"/>
+                                    <path d="M6 11.5H14"/>
+                                    <path d="M6 16.5H12"/>
+                                    <path d="M16 14L18 16L21 12"/>
+                                </svg>
+                            </span>
+                            Learning Path
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mt-auto rounded-[22px] border border-[#e8e8ef] bg-gradient-to-b from-white to-[#f6f2ff] p-5 shadow-[0_12px_30px_rgba(91,80,255,0.08)]">
+                    <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-[#5f54ff] shadow-[0_12px_24px_rgba(15,23,42,0.08)]">
+                        <svg viewBox="0 0 24 24" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 4L13.7 7.5L17.5 8L14.8 10.7L15.4 14.5L12 12.7L8.6 14.5L9.2 10.7L6.5 8L10.3 7.5L12 4Z"/>
+                            <path d="M5 19C6.5 17.5 8.5 17 10 17.8"/>
+                            <path d="M19 19C17.5 17.5 15.5 17 14 17.8"/>
+                        </svg>
+                    </div>
+                    <h3 class="mt-5 text-[26px] font-bold tracking-[-0.04em] text-[#17171d]">Get Trenning AI</h3>
+                    <p class="mt-3 text-[15px] leading-7 text-[#65656f]">Use AI in every action on Trenning webapp.</p>
+                    <button class="mt-6 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-[15px] font-semibold text-[#17171d] shadow-[0_10px_20px_rgba(15,23,42,0.08)]">
+                        Try it now
+                        <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M7 17L17 7"/>
+                            <path d="M8 7H17V16"/>
+                        </svg>
+                    </button>
+                </div>
+            </aside>
+
+            <section class="flex min-w-0 flex-1 flex-col bg-white">
+                <header class="border-b border-[#ececf2] px-12 pt-10">
+                    <h1 class="text-[20px] font-bold tracking-[-0.02em]">Learners</h1>
+                    <nav class="mt-8 flex gap-8 text-[17px]">
+                        <button class="border-b-2 border-[#17171d] pb-3 font-semibold text-[#17171d]">Overview</button>
+                        <button class="pb-3 font-medium text-[#6b6b74]">Progress</button>
+                    </nav>
+                </header>
+
+                <div class="scrollbar-hidden flex-1 overflow-y-auto px-12 py-8">
+                    <div class="grid grid-cols-12 gap-6">
+                        <section class="col-span-12 xl:col-span-7 rounded-[24px] border border-[#e8e8ef] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+                            <div class="flex items-start justify-between gap-4">
+                                <div class="flex items-center gap-3">
+                                    <h2 class="text-[16px] font-semibold text-[#17171d]">Learners activity</h2>
+                                    <svg viewBox="0 0 24 24" class="h-5 w-5 text-[#17171d]" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                        <circle cx="12" cy="12" r="8.5"/>
+                                        <path d="M12 10V16"/>
+                                        <path d="M12 7.6H12.01"/>
+                                    </svg>
+                                </div>
+                                <a href="#" class="inline-flex items-center gap-2 text-[16px] font-medium text-[#5f54ff]">
+                                    View all
+                                    <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M7 17L17 7"/>
+                                        <path d="M8 7H17V16"/>
+                                    </svg>
+                                </a>
+                            </div>
+
+                            <div class="mt-6 flex gap-8 border-b border-[#ececf2] pb-4 text-[15px] text-[#666670]">
+                                <button class="border-b-2 border-[#17171d] pb-2 font-semibold text-[#17171d]">All</button>
+                                <button class="pb-2 font-medium">Course</button>
+                                <button class="pb-2 font-medium">Quiz</button>
+                                <button class="pb-2 font-medium">Assignment</button>
+                            </div>
+
+                            <div class="pt-5">
+                                <p class="text-[13px] font-medium text-[#75757f]">Today</p>
+
+                                <div class="mt-3 space-y-1">
+                                    <article class="flex items-start justify-between gap-4 border-t border-[#efeff5] py-4 first:border-t-0 first:pt-4">
+                                        <div class="flex min-w-0 gap-4">
+                                            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#8ed8ff] to-[#4ea7ff] text-[13px] font-bold text-white">AB</div>
+                                            <div class="min-w-0">
+                                                <p class="text-[15px] font-semibold text-[#17171d]">Arif Brata</p>
+                                                <p class="mt-1 flex min-w-0 items-center gap-2 text-[14px] text-[#5d5d67]">
+                                                    <span>Started course</span>
+                                                    <span class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[#dff4ff] text-[#28a8ef]">
+                                                        <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                                            <rect x="5" y="5" width="14" height="14" rx="3"/>
+                                                            <path d="M8.5 12H15.5"/>
+                                                        </svg>
+                                                    </span>
+                                                    <span class="truncate text-[#17171d]">&ldquo;A Designer&apos;s Toolkit for Crafting Exceptional...&rdquo;</span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <span class="shrink-0 pt-1 text-[14px] font-medium text-[#676772]">15s ago</span>
+                                    </article>
+
+                                    <article class="flex items-start justify-between gap-4 border-t border-[#efeff5] py-4">
+                                        <div class="flex min-w-0 gap-4">
+                                            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#ffbf32] text-[15px] font-bold text-white">FA</div>
+                                            <div class="min-w-0">
+                                                <p class="text-[15px] font-semibold text-[#17171d]">Fauzan Aziz</p>
+                                                <p class="mt-1 flex min-w-0 flex-wrap items-center gap-2 text-[14px] text-[#5d5d67]">
+                                                    <span>Failed quiz</span>
+                                                    <span class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[#fff4d6] text-[#f6b000]">
+                                                        <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M7 7.5H17"/>
+                                                            <path d="M7 12H13"/>
+                                                            <path d="M7 16.5H11"/>
+                                                        </svg>
+                                                    </span>
+                                                    <span class="truncate text-[#17171d]">&ldquo;Mastering UI/UX Design...&rdquo;</span>
+                                                    <span>with</span>
+                                                    <span class="inline-flex items-center gap-1 text-[#17171d]">
+                                                        <span class="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#ffcc29] text-[10px] text-[#17171d]">◆</span>
+                                                        30 points
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <span class="shrink-0 pt-1 text-[14px] font-medium text-[#676772]">5m ago</span>
+                                    </article>
+
+                                    <article class="flex items-start justify-between gap-4 border-t border-[#efeff5] py-4">
+                                        <div class="flex min-w-0 gap-4">
+                                            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#7a6bff] to-[#4f4af5] text-[15px] font-bold text-white">AI</div>
+                                            <div class="min-w-0">
+                                                <p class="text-[15px] font-semibold text-[#17171d]">Ardhi Irwandi</p>
+                                                <p class="mt-1 flex min-w-0 flex-wrap items-center gap-2 text-[14px] text-[#5d5d67]">
+                                                    <span>Completed quiz</span>
+                                                    <span class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[#fff4d6] text-[#f6b000]">
+                                                        <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                                            <path d="M7 7.5H17"/>
+                                                            <path d="M7 12H13"/>
+                                                            <path d="M7 16.5H11"/>
+                                                        </svg>
+                                                    </span>
+                                                    <span class="truncate text-[#17171d]">&ldquo;Mastering UI/UX Design...&rdquo;</span>
+                                                    <span>with</span>
+                                                    <span class="inline-flex items-center gap-1 text-[#17171d]">
+                                                        <span class="inline-flex h-4 w-4 items-center justify-center rounded-full bg-[#ffcc29] text-[10px] text-[#17171d]">◆</span>
+                                                        95 points
+                                                    </span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <span class="shrink-0 pt-1 text-[14px] font-medium text-[#676772]">1h ago</span>
+                                    </article>
+
+                                    <article class="flex items-start justify-between gap-4 border-t border-[#efeff5] py-4">
+                                        <div class="flex min-w-0 gap-4">
+                                            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-[#ffd8c7] to-[#f2b7a2] text-[13px] font-bold text-[#7f4b35]">FD</div>
+                                            <div class="min-w-0">
+                                                <p class="text-[15px] font-semibold text-[#17171d]">Friza Dipa</p>
+                                                <p class="mt-1 flex min-w-0 items-center gap-2 text-[14px] text-[#5d5d67]">
+                                                    <span>Started course</span>
+                                                    <span class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[#dff4ff] text-[#28a8ef]">
+                                                        <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                                            <rect x="5" y="5" width="14" height="14" rx="3"/>
+                                                            <path d="M8.5 12H15.5"/>
+                                                        </svg>
+                                                    </span>
+                                                    <span class="truncate text-[#17171d]">&ldquo;Data-Driven Design Decisions: How Analytics...&rdquo;</span>
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <span class="shrink-0 pt-1 text-[14px] font-medium text-[#676772]">07:15 AM</span>
+                                    </article>
+                                </div>
+                            </div>
+
+                            <div class="mt-3 pt-1">
+                                <p class="text-[13px] font-medium text-[#75757f]">Yesterday</p>
+                                <article class="mt-3 flex items-start justify-between gap-4 border-t border-[#efeff5] py-4">
+                                    <div class="flex min-w-0 gap-4">
+                                        <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#ff5a3b] text-[13px] font-bold text-white">BD</div>
+                                        <div class="min-w-0">
+                                            <p class="text-[15px] font-semibold text-[#17171d]">Brian Domani</p>
+                                            <p class="mt-1 flex min-w-0 items-center gap-2 text-[14px] text-[#5d5d67]">
+                                                <span>Submitted assignment</span>
+                                                <span class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-[#ece6ff] text-[#6b57ff]">
+                                                    <svg viewBox="0 0 24 24" class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                                        <path d="M8 12L11 15L16 9"/>
+                                                    </svg>
+                                                </span>
+                                                <span class="truncate text-[#17171d]">&ldquo;Foundations of Product Thinking...&rdquo;</span>
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <span class="shrink-0 pt-1 text-[14px] font-medium text-[#676772]">05:10 AM</span>
+                                </article>
+                            </div>
+                        </section>
+
+                        <div class="col-span-12 flex flex-col gap-6 xl:col-span-5">
+                            <section class="rounded-[24px] border border-[#e8e8ef] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+                                <div class="flex items-start justify-between gap-4">
+                                    <div class="flex items-center gap-3">
+                                        <h2 class="text-[16px] font-semibold text-[#17171d]">Total learners</h2>
+                                        <svg viewBox="0 0 24 24" class="h-5 w-5 text-[#17171d]" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                            <circle cx="12" cy="12" r="8.5"/>
+                                            <path d="M12 10V16"/>
+                                            <path d="M12 7.6H12.01"/>
+                                        </svg>
+                                    </div>
+                                    <button class="inline-flex items-center gap-2 text-[15px] font-medium text-[#17171d]">
+                                        All division
+                                        <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M6 9L12 15L18 9"/>
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                <div class="mt-6 flex items-end gap-2">
+                                    <span class="text-[56px] font-bold leading-none tracking-[-0.06em] text-[#17171d]">30</span>
+                                    <span class="pb-1 text-[18px] text-[#6c6c76]">People</span>
+                                </div>
+
+                                <div class="mt-6 rounded-[18px] border border-[#f0f0f4] bg-[#fafafa] p-5">
+                                    <div class="grid grid-cols-4 gap-x-4 gap-y-6 text-[14px] text-[#17171d]">
+                                        <div>
+                                            <div class="flex items-center gap-2 font-medium"><span class="h-2.5 w-2.5 rounded-full bg-[#27c49b]"></span>Design</div>
+                                            <p class="mt-1 pl-4 text-[#5e5e68]">16</p>
+                                        </div>
+                                        <div>
+                                            <div class="flex items-center gap-2 font-medium"><span class="h-2.5 w-2.5 rounded-full bg-[#e14bc0]"></span>HR</div>
+                                            <p class="mt-1 pl-4 text-[#5e5e68]">4</p>
+                                        </div>
+                                        <div>
+                                            <div class="flex items-center gap-2 font-medium"><span class="h-2.5 w-2.5 rounded-full bg-[#6874ff]"></span>Finance</div>
+                                            <p class="mt-1 pl-4 text-[#5e5e68]">2</p>
+                                        </div>
+                                        <div>
+                                            <div class="flex items-center gap-2 font-medium"><span class="h-2.5 w-2.5 rounded-full bg-[#27a8dd]"></span>Purchasing</div>
+                                            <p class="mt-1 pl-4 text-[#5e5e68]">2</p>
+                                        </div>
+                                        <div>
+                                            <div class="flex items-center gap-2 font-medium"><span class="h-2.5 w-2.5 rounded-full bg-[#a7a7a7]"></span>CX</div>
+                                            <p class="mt-1 pl-4 text-[#5e5e68]">2</p>
+                                        </div>
+                                        <div>
+                                            <div class="flex items-center gap-2 font-medium"><span class="h-2.5 w-2.5 rounded-full bg-[#ffb100]"></span>IT</div>
+                                            <p class="mt-1 pl-4 text-[#5e5e68]">2</p>
+                                        </div>
+                                        <div>
+                                            <div class="flex items-center gap-2 font-medium"><span class="h-2.5 w-2.5 rounded-full bg-[#a82497]"></span>QA</div>
+                                            <p class="mt-1 pl-4 text-[#5e5e68]">2</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section class="rounded-[24px] border border-[#e8e8ef] bg-white p-6 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+                                <div class="flex items-start justify-between gap-4">
+                                    <div class="flex items-center gap-3">
+                                        <h2 class="text-[16px] font-semibold text-[#17171d]">Learning time</h2>
+                                        <svg viewBox="0 0 24 24" class="h-5 w-5 text-[#17171d]" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                            <circle cx="12" cy="12" r="8.5"/>
+                                            <path d="M12 10V16"/>
+                                            <path d="M12 7.6H12.01"/>
+                                        </svg>
+                                    </div>
+                                    <button class="inline-flex items-center gap-2 text-[15px] font-medium text-[#17171d]">
+                                        All division
+                                        <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M6 9L12 15L18 9"/>
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                <div class="mt-8 flex items-end justify-between gap-6">
+                                    <div>
+                                        <div class="flex items-end gap-2">
+                                            <span class="text-[56px] font-bold leading-none tracking-[-0.06em] text-[#17171d]">200</span>
+                                            <span class="pb-1 text-[18px] text-[#6c6c76]">Hours</span>
+                                        </div>
+                                        <p class="mt-4 inline-flex items-center gap-2 text-[14px] font-semibold text-[#22b07d]">
+                                            <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                                <path d="M5 15L10 10L13 13L19 7"/>
+                                                <path d="M15 7H19V11"/>
+                                            </svg>
+                                            +5h since last week
+                                        </p>
+                                    </div>
+
+                                    <svg viewBox="0 0 180 70" class="h-20 w-44 text-[#d8d8df]" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M6 45C20 40 32 52 46 46C58 41 70 47 84 43C98 39 104 32 114 34C124 36 130 18 141 16C149 15 156 12 174 4" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <path d="M142 16C149 15 156 12 174 4" stroke="#b8b8ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
+                                </div>
+                            </section>
+                        </div>
+
+                        <section class="col-span-12 xl:col-span-6 rounded-[24px] border border-[#e8e8ef] bg-white p-7 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+                            <div class="flex items-start justify-between gap-4">
+                                <div class="flex items-center gap-3">
+                                    <h2 class="text-[16px] font-semibold text-[#17171d]">Weekly active learners</h2>
+                                    <svg viewBox="0 0 24 24" class="h-5 w-5 text-[#17171d]" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                        <circle cx="12" cy="12" r="8.5"/>
+                                        <path d="M12 10V16"/>
+                                        <path d="M12 7.6H12.01"/>
+                                    </svg>
+                                </div>
+                                <button class="inline-flex items-center gap-2 text-[15px] font-medium text-[#17171d]">
+                                    All division
+                                    <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M6 9L12 15L18 9"/>
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <div class="mt-5 flex items-center justify-center gap-6 text-[14px] text-[#6c6c76]">
+                                <span class="inline-flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-sm bg-[#5f54ff]"></span>This week</span>
+                                <span class="inline-flex items-center gap-2"><span class="h-2.5 w-2.5 rounded-sm bg-[#adadad]"></span>Last week</span>
+                            </div>
+
+                            <div class="mt-6 grid grid-cols-[38px_minmax(0,1fr)] gap-4">
+                                <div class="flex h-[246px] flex-col justify-between pb-8 text-[13px] font-medium text-[#94949e]">
+                                    <span>50</span>
+                                    <span>25</span>
+                                    <span>10</span>
+                                    <span>0</span>
+                                </div>
+
+                                <div class="relative h-[246px]">
+                                    <div class="absolute inset-0 pb-8">
+                                        <svg viewBox="0 0 520 210" preserveAspectRatio="none" class="h-full w-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M8 16H512" stroke="#ececf2" stroke-width="1.5"/>
+                                            <path d="M8 78H512" stroke="#ececf2" stroke-width="1.5"/>
+                                            <path d="M8 126H512" stroke="#ececf2" stroke-width="1.5"/>
+                                            <path d="M8 188H512" stroke="#ececf2" stroke-width="1.5"/>
+                                            <path d="M8 188L88 156L168 108L248 80L328 82L408 38L488 24" stroke="#5f54ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M8 188L88 168L168 160L248 146L328 68L408 74L488 58" stroke="#a9a9a9" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4 5"/>
+                                            <path d="M8 188H512" stroke="#8d8d97" stroke-width="1.8"/>
+                                        </svg>
+                                    </div>
+                                    <div class="absolute inset-x-0 bottom-0 flex justify-between pl-1 pr-2 text-[13px] font-medium text-[#6b6b74]">
+                                        <span>M 20</span>
+                                        <span>T 21</span>
+                                        <span>W 22</span>
+                                        <span>T 23</span>
+                                        <span>F 24</span>
+                                        <span>S 25</span>
+                                        <span>S 26</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="col-span-12 xl:col-span-6 rounded-[24px] border border-[#e8e8ef] bg-white p-7 shadow-[0_8px_24px_rgba(15,23,42,0.04)]">
+                            <div class="flex items-start gap-3">
+                                <h2 class="text-[16px] font-semibold text-[#17171d]">Most active learners (Last 4 weeks)</h2>
+                                <svg viewBox="0 0 24 24" class="mt-0.5 h-5 w-5 text-[#17171d]" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="12" cy="12" r="8.5"/>
+                                    <path d="M12 10V16"/>
+                                    <path d="M12 7.6H12.01"/>
+                                </svg>
+                            </div>
+
+                            <div class="mt-8 grid grid-cols-[minmax(0,1fr)_300px_60px] items-center gap-4 border-b border-[#ececf2] pb-4 text-[14px] font-medium text-[#7a7a84]">
+                                <span>Learners</span>
+                                <span>Learning time</span>
+                                <span></span>
+                            </div>
+
+                            <div class="mt-5 space-y-5">
+                                <div class="grid grid-cols-[minmax(0,1fr)_300px_60px] items-center gap-4">
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <div class="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#8ed8ff] to-[#4ea7ff] text-[11px] font-bold text-white">AB</div>
+                                        <span class="truncate text-[15px] font-semibold text-[#17171d]">Arif Brata</span>
+                                    </div>
+                                    <div class="h-6 rounded-lg bg-[#edf7fd]"><div class="h-full w-[92%] rounded-lg bg-[#33afe8]"></div></div>
+                                    <span class="text-right text-[15px] font-medium text-[#17171d]">65 hrs</span>
+                                </div>
+                                <div class="grid grid-cols-[minmax(0,1fr)_300px_60px] items-center gap-4">
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <div class="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#d1e9f7] to-[#84b7dc] text-[11px] font-bold text-[#3b5673]">AI</div>
+                                        <span class="truncate text-[15px] font-semibold text-[#17171d]">Ardhi Irwandi</span>
+                                    </div>
+                                    <div class="h-6 rounded-lg bg-[#edf7fd]"><div class="h-full w-[74%] rounded-lg bg-[#33afe8]"></div></div>
+                                    <span class="text-right text-[15px] font-medium text-[#17171d]">65 hrs</span>
+                                </div>
+                                <div class="grid grid-cols-[minmax(0,1fr)_300px_60px] items-center gap-4">
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <div class="flex h-9 w-9 items-center justify-center rounded-full bg-[#ff5a3b] text-[11px] font-bold text-white">BD</div>
+                                        <span class="truncate text-[15px] font-semibold text-[#17171d]">Brian Domani</span>
+                                    </div>
+                                    <div class="h-6 rounded-lg bg-[#edf7fd]"><div class="h-full w-[50%] rounded-lg bg-[#33afe8]"></div></div>
+                                    <span class="text-right text-[15px] font-medium text-[#17171d]">65 hrs</span>
+                                </div>
+                                <div class="grid grid-cols-[minmax(0,1fr)_300px_60px] items-center gap-4">
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <div class="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#d1e9f7] to-[#84b7dc] text-[11px] font-bold text-[#3b5673]">AI</div>
+                                        <span class="truncate text-[15px] font-semibold text-[#17171d]">Ardhi Irwandi</span>
+                                    </div>
+                                    <div class="h-6 rounded-lg bg-[#edf7fd]"><div class="h-full w-[47%] rounded-lg bg-[#33afe8]"></div></div>
+                                    <span class="text-right text-[15px] font-medium text-[#17171d]">24 hrs</span>
+                                </div>
+                                <div class="grid grid-cols-[minmax(0,1fr)_300px_60px] items-center gap-4">
+                                    <div class="flex items-center gap-3 min-w-0">
+                                        <div class="flex h-9 w-9 items-center justify-center rounded-full bg-[#ffbf32] text-[11px] font-bold text-white">FA</div>
+                                        <span class="truncate text-[15px] font-semibold text-[#17171d]">Fauzan Aziz</span>
+                                    </div>
+                                    <div class="h-6 rounded-lg bg-[#edf7fd]"><div class="h-full w-[13%] rounded-lg bg-[#33afe8]"></div></div>
+                                    <span class="text-right text-[15px] font-medium text-[#17171d]">12 hrs</span>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </section>
         </div>
-        <div class="card">
-            <p class="card-number">02</p>
-            <p class="card-title">Scale</p>
-            <p style="font-size: 1.2rem; font-weight: 600;">Handle millions of requests. Nginx caching out of the box.</p>
-        </div>
-        <div class="card">
-            <p class="card-number">03</p>
-            <p class="card-title">Secure</p>
-            <p style="font-size: 1.2rem; font-weight: 600;">No backend logic. No database to hack. Pure static files.</p>
-        </div>
-    </div>
+    </main>
 </body>
 </html>

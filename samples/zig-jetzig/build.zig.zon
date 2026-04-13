@@ -1,0 +1,18 @@
+.{
+    .name = .zig_jetzig,
+    .version = "0.0.0",
+    .fingerprint = 0xaabbccdd11223344,
+    .dependencies = .{
+        .jetzig = .{
+            // Run `zig fetch --save https://github.com/jetzig-framework/jetzig/archive/refs/heads/main.tar.gz`
+            // to update the URL and hash to the latest version.
+            .url = "https://github.com/jetzig-framework/jetzig/archive/refs/heads/main.tar.gz",
+            .hash = "jetzig-0.0.0-IpAgLYC-DwCHbRyAEqdI1YI3jCbWhUiIoSs5HFEAma7o",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
