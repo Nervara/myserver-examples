@@ -375,10 +375,20 @@ async function stressTest(name: string, fn: QueryFn, concurrency: number, opsPer
 }
 
 // ── HTTP server ──────────────────────────────────────────────────
+function logLine(level: "info" | "warn" | "error" | "debug", msg: string, fields: Record<string, unknown> = {}) {
+  const entry = { ts: new Date().toISOString(), level, msg, pid: process.pid, ...fields };
+  const stream = level === "error" ? process.stderr : process.stdout;
+  stream.write(JSON.stringify(entry) + "\n");
+}
+
+let requestCounter = 0;
+
 const server = Bun.serve({
   port: PORT,
   async fetch(request) {
     const url = new URL(request.url);
+    const reqId = (++requestCounter).toString(36);
+    logLine("info", "request", { req_id: reqId, method: request.method, path: url.pathname, query: url.search, ua: request.headers.get("user-agent") || "" });
 
     if (url.pathname === "/health") return new Response("OK");
 
@@ -1077,3 +1087,23 @@ function renderDashboard(): string {
 }
 
 console.log("Discovery showcase listening on http://localhost:" + server.port);
+logLine("info", "server.started", { port: server.port, bun: Bun.version, node_env: process.env.NODE_ENV || "development" });
+
+// Heartbeat: emit mixed-level logs so VictoriaLogs has steady activity to query.
+const HEARTBEAT_MS = Number(process.env.HEARTBEAT_MS || 5000);
+const sampleEvents = [
+  { level: "info" as const, msg: "cache.refresh", fields: () => ({ keys: Math.floor(Math.random() * 500), hit_ratio: +(Math.random()).toFixed(3) }) },
+  { level: "info" as const, msg: "job.tick", fields: () => ({ queue: "default", pending: Math.floor(Math.random() * 20) }) },
+  { level: "debug" as const, msg: "gc.stats", fields: () => ({ heap_mb: +(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(1), rss_mb: +(process.memoryUsage().rss / 1024 / 1024).toFixed(1) }) },
+  { level: "warn" as const, msg: "slow.query", fields: () => ({ db: ["pg", "mysql", "redis"][Math.floor(Math.random() * 3)], duration_ms: 500 + Math.floor(Math.random() * 2000) }) },
+  { level: "error" as const, msg: "upstream.timeout", fields: () => ({ upstream: "analytics", retry: Math.floor(Math.random() * 3), err: "context deadline exceeded" }) },
+];
+let heartbeatTick = 0;
+setInterval(() => {
+  heartbeatTick++;
+  logLine("info", "heartbeat", { tick: heartbeatTick, uptime_s: Math.round(process.uptime()) });
+  if (heartbeatTick % 3 === 0) {
+    const ev = sampleEvents[Math.floor(Math.random() * sampleEvents.length)];
+    logLine(ev.level, ev.msg, ev.fields());
+  }
+}, HEARTBEAT_MS);
