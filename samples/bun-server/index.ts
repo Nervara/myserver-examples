@@ -471,7 +471,7 @@ function renderDashboard(): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Database Discovery v2.0 | myserver</title>
+  <title>Database Discovery v2.1 | myserver</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -599,7 +599,7 @@ function renderDashboard(): string {
           <div class="logo">M</div>
           <div>
             <div class="header-title">myserver</div>
-            <div class="header-sub">Database Discovery &amp; Performance v2.0</div>
+            <div class="header-sub">Database Discovery &amp; Performance v2.1</div>
           </div>
         </div>
         <div class="flex items-center gap-8 flex-wrap">
