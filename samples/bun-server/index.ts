@@ -177,7 +177,9 @@ function testSqlite(): DBResult {
   try {
     const ver = historyDb.query<{ v: string }, []>("SELECT sqlite_version() as v").get()!;
     const rows = historyDb.query<{ c: number }, []>("SELECT count(*) as c FROM runs").get()!;
-    const journal = historyDb.query<{ j: string }, []>("PRAGMA journal_mode").get()!;
+    // PRAGMA returns a column literally named "journal_mode" — alias it
+    // so the typed Bun query lines up with the destructure.
+    const journal = historyDb.query<{ j: string }, []>("SELECT journal_mode AS j FROM pragma_journal_mode").get()!;
     const userSet = !!(process.env.DATABASE_URL || "").trim();
     return {
       name: userSet ? "SQLite (DATABASE_URL)" : "SQLite (local)",
