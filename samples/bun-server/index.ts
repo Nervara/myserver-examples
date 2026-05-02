@@ -2,6 +2,8 @@ import pg from "pg";
 import mysql from "mysql2/promise";
 import Redis from "ioredis";
 import { Database } from "bun:sqlite";
+import { existsSync, mkdirSync } from "fs";
+import { dirname } from "path";
 
 const PORT = process.env.PORT || 3000;
 
@@ -44,7 +46,34 @@ interface StressResult {
 }
 
 // ── SQLite history database ──────────────────────────────────────
-const historyDb = new Database("history.sqlite");
+// Resolution order:
+//   1. DATABASE_URL — accepts sqlite:///path (Python URI), jdbc:sqlite:/path
+//      (JDBC), file:/path (Prisma/Go), or a bare /path. Set this manually
+//      to point at the file mounted by a myserver SQLite resource.
+//   2. ${DATA_DIR}/history.sqlite — falls back to /data so the file
+//      lands on a mounted volume, not the ephemeral container fs
+function resolveSqlitePath(): string {
+  const url = (process.env.DATABASE_URL || "").trim();
+  if (url) {
+    // Strip the most common SQLite URL prefixes — bun:sqlite wants the
+    // bare filesystem path, not a URL. Matches what `myserver` shows on
+    // its SQLite resource detail page.
+    if (url.startsWith("sqlite://"))      return url.replace(/^sqlite:\/\//, "");
+    if (url.startsWith("jdbc:sqlite:"))   return url.replace(/^jdbc:sqlite:/, "");
+    if (url.startsWith("file:"))          return url.replace(/^file:/, "").split("?")[0];
+    if (url.startsWith("/"))              return url; // bare absolute path
+  }
+  const dataDir = process.env.DATA_DIR || "/data";
+  return `${dataDir}/history.sqlite`;
+}
+const HISTORY_DB_PATH = resolveSqlitePath();
+const historyDir = dirname(HISTORY_DB_PATH);
+if (historyDir && historyDir !== "." && !existsSync(historyDir)) {
+  mkdirSync(historyDir, { recursive: true });
+}
+const historyDb = new Database(HISTORY_DB_PATH, { create: true });
+historyDb.run("PRAGMA journal_mode = WAL");
+historyDb.run("PRAGMA busy_timeout = 5000");
 historyDb.run("CREATE TABLE IF NOT EXISTS runs(id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT NOT NULL, mode TEXT NOT NULL, timestamp TEXT NOT NULL, data JSON NOT NULL)");
 
 function saveRun(type: string, mode: string, data: any): number {
@@ -135,6 +164,38 @@ async function testMariaDB(): Promise<DBResult> {
     };
   } catch (e: any) {
     return { name: "MariaDB", type: "mariadb", host: process.env.MARIADB_URL?.replace(/\/\/.*@/, "//***@") || "", status: "error", latency_ms: Math.round(performance.now() - start), error: e.message?.replace(/\/\/[^@]*@/g, "//***@").replace(/password[= ][^\s;,)]+/gi, "password=***") };
+  }
+}
+
+// ── SQLite connectivity check ────────────────────────────────────
+// Always-available because the bun:sqlite import opens a local file —
+// no env var required. Distinguishes between "DATABASE_URL pointed us at
+// this file" (custom path, user-managed) vs "no DATABASE_URL set, using
+// the default DATA_DIR/history.sqlite fallback".
+function testSqlite(): DBResult {
+  const start = performance.now();
+  try {
+    const ver = historyDb.query<{ v: string }, []>("SELECT sqlite_version() as v").get()!;
+    const rows = historyDb.query<{ c: number }, []>("SELECT count(*) as c FROM runs").get()!;
+    const journal = historyDb.query<{ j: string }, []>("PRAGMA journal_mode").get()!;
+    const userSet = !!(process.env.DATABASE_URL || "").trim();
+    return {
+      name: userSet ? "SQLite (DATABASE_URL)" : "SQLite (local)",
+      type: "sqlite",
+      host: HISTORY_DB_PATH,
+      status: "connected",
+      latency_ms: Math.round(performance.now() - start),
+      details: `SQLite ${ver.v} | journal=${journal.j} | rows=${rows.c}` + (userSet ? " | path from DATABASE_URL" : " | DATABASE_URL not set — using fallback path"),
+    };
+  } catch (e: any) {
+    return {
+      name: "SQLite",
+      type: "sqlite",
+      host: HISTORY_DB_PATH,
+      status: "error",
+      latency_ms: Math.round(performance.now() - start),
+      error: e.message,
+    };
   }
 }
 
@@ -394,7 +455,7 @@ const server = Bun.serve({
 
     // API: connectivity test
     if (url.pathname === "/api/test") {
-      const results = await Promise.all([testPostgres(), testMySQL(), testMariaDB(), testRedis()]);
+      const results = await Promise.all([testPostgres(), testMySQL(), testMariaDB(), testRedis(), Promise.resolve(testSqlite())]);
       return Response.json({
         timestamp: new Date().toISOString(),
         runtime: `Bun ${Bun.version}`,
@@ -515,6 +576,7 @@ function renderDashboard(): string {
     .card-mysql { border-left-color: #00A7D0; }
     .card-mariadb { border-left-color: #C4784F; }
     .card-redis { border-left-color: #E84D3D; }
+    .card-sqlite { border-left-color: #003B57; }
     .btn { display: inline-flex; align-items: center; justify-content: center; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--btn-bg); color: var(--text); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s ease; font-family: inherit; }
     .btn:hover { background: var(--btn-hover); border-color: var(--text-muted); }
     .btn:active { transform: scale(0.97); }
@@ -705,8 +767,8 @@ function renderDashboard(): string {
   <div style="height:40px"></div>
 
   <script>
-    var DB_COLORS = { 'PostgreSQL': '#4F7BEF', 'MySQL': '#00A7D0', 'MariaDB': '#C4784F', 'Redis': '#E84D3D' };
-    var DB_CLASS = { 'PostgreSQL': 'card-pg', 'MySQL': 'card-mysql', 'MariaDB': 'card-mariadb', 'Redis': 'card-redis' };
+    var DB_COLORS = { 'PostgreSQL': '#4F7BEF', 'MySQL': '#00A7D0', 'MariaDB': '#C4784F', 'Redis': '#E84D3D', 'SQLite (DATABASE_URL)': '#003B57', 'SQLite (local)': '#6b7280', 'SQLite': '#003B57' };
+    var DB_CLASS = { 'PostgreSQL': 'card-pg', 'MySQL': 'card-mysql', 'MariaDB': 'card-mariadb', 'Redis': 'card-redis', 'SQLite (DATABASE_URL)': 'card-sqlite', 'SQLite (local)': 'card-sqlite', 'SQLite': 'card-sqlite' };
     var benchChart = null;
     var stressChart = null;
     var historyChart = null;
