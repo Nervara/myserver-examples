@@ -459,7 +459,8 @@ async function runBenchmark(name: string, fn: QueryFn, iterations: number): Prom
   };
 }
 
-// Ensure bench tables exist once (called before benchmarks/stress, not per-op)
+// Ensure bench tables exist once (called before benchmarks/stress, not per-op).
+// Idempotent; safe to call repeatedly.
 async function ensureBenchTables() {
   if (pgPool) {
     const c = await pgPool.connect();
@@ -471,6 +472,17 @@ async function ensureBenchTables() {
   }
   if (mariaPool) {
     await mariaPool.query("CREATE TABLE IF NOT EXISTS _bench(id INT AUTO_INCREMENT PRIMARY KEY, val VARCHAR(255), n INT, ts TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+  }
+  if (mongoClient) {
+    if (!mongoConnected) { await mongoClient.connect(); mongoConnected = true; }
+    // Mongo collections are lazy — no CREATE step needed. Index on `n` so
+    // the "complex" bench mode's range query isn't a collection scan.
+    await mongoClient.db().collection("_bench").createIndex({ n: 1 }).catch(() => {});
+  }
+  if (chClient) {
+    // Memory engine — cheap, no on-disk footprint, dies with the server.
+    // Sufficient for bench; production would use MergeTree.
+    await chClient.command({ query: "CREATE TABLE IF NOT EXISTS _bench (id UInt32, val String, n UInt32, ts DateTime DEFAULT now()) ENGINE = Memory" });
   }
 }
 
@@ -546,27 +558,29 @@ function mysqlQueries(pool: mysql.Pool | null, mode: string): QueryFn {
   }
 }
 
-function redisQueries(mode: string): QueryFn {
-  if (!redisClient) return async () => {};
+// Parameterized over the client so KeyDB + Dragonfly can reuse it — they
+// speak the Redis wire protocol so the ops are identical.
+function redisFamilyQueries(client: Redis | null, mode: string): QueryFn {
+  if (!client) return async () => {};
   switch (mode) {
     case "write":
       return async () => {
         const key = `bench:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
-        await redisClient.set(key, JSON.stringify({ ts: Date.now(), val: Math.random() }), "EX", 60);
+        await client.set(key, JSON.stringify({ ts: Date.now(), val: Math.random() }), "EX", 60);
       };
     case "read_write":
       return async () => {
         const key = `bench:rw:${Math.random().toString(36).slice(2, 8)}`;
-        await redisClient.set(key, JSON.stringify({ ts: Date.now(), val: Math.random() }), "EX", 60);
-        await redisClient.get(key);
-        await redisClient.incr("bench:counter");
-        await redisClient.lpush("bench:log", `${Date.now()}`);
-        await redisClient.ltrim("bench:log", 0, 99);
-        await redisClient.del(key);
+        await client.set(key, JSON.stringify({ ts: Date.now(), val: Math.random() }), "EX", 60);
+        await client.get(key);
+        await client.incr("bench:counter");
+        await client.lpush("bench:log", `${Date.now()}`);
+        await client.ltrim("bench:log", 0, 99);
+        await client.del(key);
       };
     case "pipeline":
       return async () => {
-        const pipe = redisClient.pipeline();
+        const pipe = client.pipeline();
         for (let i = 0; i < 10; i++) {
           pipe.set(`bench:pipe:${i}`, `val-${Date.now()}`, "EX", 60);
           pipe.get(`bench:pipe:${i}`);
@@ -576,14 +590,97 @@ function redisQueries(mode: string): QueryFn {
     case "complex":
       return async () => {
         const key = `bench:hash:${Math.random().toString(36).slice(2, 6)}`;
-        await redisClient.hset(key, { name: "test", score: String(Math.random() * 100 | 0), ts: String(Date.now()) });
-        await redisClient.hgetall(key);
-        await redisClient.zadd("bench:leaderboard", Math.random() * 1000 | 0, key);
-        await redisClient.zrangebyscore("bench:leaderboard", "-inf", "+inf", "LIMIT", 0, 10);
-        await redisClient.expire(key, 60);
+        await client.hset(key, { name: "test", score: String(Math.random() * 100 | 0), ts: String(Date.now()) });
+        await client.hgetall(key);
+        await client.zadd("bench:leaderboard", Math.random() * 1000 | 0, key);
+        await client.zrangebyscore("bench:leaderboard", "-inf", "+inf", "LIMIT", 0, 10);
+        await client.expire(key, 60);
       };
     default:
-      return async () => { await redisClient.ping(); };
+      return async () => { await client.ping(); };
+  }
+}
+
+// Back-compat alias — many call sites read `redisQueries(mode)`.
+const redisQueries = (mode: string) => redisFamilyQueries(redisClient, mode);
+
+// ── MongoDB bench queries ────────────────────────────────────────
+function mongoQueries(mode: string): QueryFn {
+  if (!mongoClient) return async () => {};
+  const coll = () => mongoClient!.db().collection("_bench");
+  switch (mode) {
+    case "write":
+      return async () => {
+        await coll().insertOne({ val: `row-${Date.now()}`, n: Math.random() * 1000 | 0, ts: new Date() });
+      };
+    case "read_write":
+      return async () => {
+        const ins = await coll().insertOne({ val: `rw-${Date.now()}`, n: Math.random() * 1000 | 0, ts: new Date() });
+        await coll().aggregate([{ $group: { _id: null, cnt: { $sum: 1 }, avg_n: { $avg: "$n" }, max_n: { $max: "$n" } } }]).toArray();
+        await coll().deleteOne({ _id: ins.insertedId });
+      };
+    case "transaction":
+      return async () => {
+        // Standalone Mongo (no replica set) refuses real transactions —
+        // simulate with bulkWrite which is atomic per-document on a single shard.
+        await coll().bulkWrite([
+          { insertOne: { document: { val: `tx-${Date.now()}`, n: Math.random() * 1000 | 0, ts: new Date() } } },
+          { updateOne: { filter: {}, update: { $inc: { n: 1 } } } },
+        ]);
+        await coll().find().sort({ ts: -1 }).limit(10).toArray();
+      };
+    case "complex":
+      return async () => {
+        await coll().insertOne({ val: `cx-${Date.now()}`, n: Math.random() * 10000 | 0, ts: new Date() });
+        await coll().aggregate([
+          { $sort: { ts: -1 } }, { $limit: 100 },
+          { $group: { _id: null, cnt: { $sum: 1 }, avg_n: { $avg: "$n" }, std_n: { $stdDevPop: "$n" } } },
+        ]).toArray();
+      };
+    default: // ping
+      return async () => { await mongoClient!.db().admin().ping(); };
+  }
+}
+
+// ── ClickHouse bench queries ─────────────────────────────────────
+// Memory engine table (created in ensureBenchTables). HTTP transport, so
+// every op is a round-trip — expect higher latency than wire-protocol DBs.
+function clickhouseQueries(mode: string): QueryFn {
+  if (!chClient) return async () => {};
+  switch (mode) {
+    case "write":
+      return async () => {
+        await chClient.insert({
+          table: "_bench",
+          values: [{ id: Math.random() * 1e9 | 0, val: `row-${Date.now()}`, n: Math.random() * 1000 | 0 }],
+          format: "JSONEachRow",
+        });
+      };
+    case "read_write":
+      return async () => {
+        await chClient.insert({
+          table: "_bench",
+          values: [{ id: Math.random() * 1e9 | 0, val: `rw-${Date.now()}`, n: Math.random() * 1000 | 0 }],
+          format: "JSONEachRow",
+        });
+        const rs = await chClient.query({ query: "SELECT count(*) AS cnt, avg(n) AS avg_n, max(n) AS max_n FROM _bench", format: "JSONEachRow" });
+        await rs.json();
+      };
+    case "complex":
+      return async () => {
+        await chClient.insert({
+          table: "_bench",
+          values: [{ id: Math.random() * 1e9 | 0, val: `cx-${Date.now()}`, n: Math.random() * 10000 | 0 }],
+          format: "JSONEachRow",
+        });
+        const rs = await chClient.query({
+          query: "SELECT count(*) AS cnt, avg(n) AS avg_n, stddevPop(n) AS std_n FROM (SELECT n FROM _bench ORDER BY ts DESC LIMIT 100)",
+          format: "JSONEachRow",
+        });
+        await rs.json();
+      };
+    default: // ping
+      return async () => { const rs = await chClient.query({ query: "SELECT 1", format: "JSONEachRow" }); await rs.json(); };
   }
 }
 
@@ -709,7 +806,11 @@ const server = Bun.serve({
         pgPool ? runBenchmark("PostgreSQL", pgQueries(mode), n) : null,
         mysqlPool ? runBenchmark("MySQL", mysqlQueries(mysqlPool, mode), n) : null,
         mariaPool ? runBenchmark("MariaDB", mysqlQueries(mariaPool, mode), n) : null,
-        (redisClient && redisClient.status !== "wait") ? runBenchmark("Redis", redisQueries(mode), n) : null,
+        mongoClient ? runBenchmark("MongoDB", mongoQueries(mode), n) : null,
+        (redisClient && redisClient.status !== "wait") ? runBenchmark("Redis", redisFamilyQueries(redisClient, mode), n) : null,
+        chClient ? runBenchmark("ClickHouse", clickhouseQueries(mode), n) : null,
+        (keydbClient && keydbClient.status !== "wait") ? runBenchmark("KeyDB", redisFamilyQueries(keydbClient, mode), n) : null,
+        (dragonflyClient && dragonflyClient.status !== "wait") ? runBenchmark("Dragonfly", redisFamilyQueries(dragonflyClient, mode), n) : null,
       ])).filter(Boolean);
       const payload = { timestamp: new Date().toISOString(), iterations: n, mode, benchmarks: results };
       saveRun("bench", mode, payload);
@@ -730,7 +831,11 @@ const server = Bun.serve({
         pgPool ? stressTest("PostgreSQL", pgQueries("read_write"), concurrency, ops) : null,
         mysqlPool ? stressTest("MySQL", mysqlQueries(mysqlPool, "read_write"), concurrency, ops) : null,
         mariaPool ? stressTest("MariaDB", mysqlQueries(mariaPool, "read_write"), concurrency, ops) : null,
-        (redisClient && redisClient.status !== "wait") ? stressTest("Redis", redisQueries("read_write"), concurrency, ops) : null,
+        mongoClient ? stressTest("MongoDB", mongoQueries("read_write"), concurrency, ops) : null,
+        (redisClient && redisClient.status !== "wait") ? stressTest("Redis", redisFamilyQueries(redisClient, "read_write"), concurrency, ops) : null,
+        chClient ? stressTest("ClickHouse", clickhouseQueries("read_write"), concurrency, ops) : null,
+        (keydbClient && keydbClient.status !== "wait") ? stressTest("KeyDB", redisFamilyQueries(keydbClient, "read_write"), concurrency, ops) : null,
+        (dragonflyClient && dragonflyClient.status !== "wait") ? stressTest("Dragonfly", redisFamilyQueries(dragonflyClient, "read_write"), concurrency, ops) : null,
       ])).filter(Boolean);
       const payload = { timestamp: new Date().toISOString(), concurrency, ops_per_worker: ops, results };
       saveRun("stress", "read_write", payload);
