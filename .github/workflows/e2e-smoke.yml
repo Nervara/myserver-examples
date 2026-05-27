@@ -1,0 +1,58 @@
+name: E2E smoke (polyglot connectivity)
+
+# Runs smoke.sh against the deployed e2e-polyglot fixture in env 14.
+# Catches DB driver / URL-shape / credential regressions early, before they
+# silently degrade production read paths.
+#
+# Triggers:
+#   - Push to main touching samples/bun-server/** — verifies the new code
+#     once it's redeployed.
+#   - Nightly cron — catches credential drift, disk-full, DB-version bumps
+#     that would otherwise surface as customer-facing 500s.
+#   - workflow_dispatch — manual re-run with optional target override.
+#
+# The actual base URL is the sslip.io FQDN of e2e-polyglot on env 14 /
+# team 10 / green server 8. Override via inputs.target if testing against
+# a fork's deployment.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "samples/bun-server/**"
+  schedule:
+    - cron: "0 6 * * *"   # 06:00 UTC daily
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Polyglot app FQDN (no trailing slash)"
+        required: false
+        default: "https://13b55f59-e2e-polyglot.72.61.203.163.sslip.io"
+      write_mode:
+        description: "Run INSERT/SELECT/DELETE round-trip per DB"
+        required: false
+        default: "true"
+        type: choice
+        options: ["true", "false"]
+
+jobs:
+  smoke:
+    name: Smoke ${{ github.event.inputs.target || 'production e2e' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get install -y jq
+
+      - name: Connectivity probes (read-only)
+        env:
+          TARGET: ${{ github.event.inputs.target || 'https://13b55f59-e2e-polyglot.72.61.203.163.sslip.io' }}
+        run: bash samples/bun-server/smoke.sh "$TARGET"
+
+      - name: Write round-trip probes (INSERT/SELECT/DELETE per DB)
+        if: ${{ github.event.inputs.write_mode != 'false' }}
+        env:
+          TARGET: ${{ github.event.inputs.target || 'https://13b55f59-e2e-polyglot.72.61.203.163.sslip.io' }}
+        run: bash samples/bun-server/smoke.sh "$TARGET" --write

@@ -8,6 +8,7 @@ Single Bun + TypeScript app that probes every database type myserver provisions 
 - `/health` — flat `OK` (for Docker/Caddy healthcheck).
 - `/health/<type>` — per-DB JSON probe. Returns 200 on connect, 503 on error. Designed for `curl --fail` in CI.
   - Accepts: `postgres`, `postgresql`, `mysql`, `mariadb`, `mongo`, `mongodb`, `redis`, `clickhouse`, `keydb`, `dragonfly`.
+  - `?write=1` — also runs INSERT → SELECT-back → DELETE per DB. Cleans up its own row. Catches the failure modes a `SELECT 1` probe can't see: URL-shape regressions silently routing to a read-only replica, credential drift, disk-full on a volume, schema-privilege loss after restore. The response gains a `write: {ok, latencyMs, error?}` field and the overall `ok` requires both probes to pass.
 - `/api/test` — JSON connectivity report across all configured DBs.
 - `/api/bench?n=N&mode=...` — micro-benchmark (PG/MySQL/MariaDB/Redis only).
 - `/api/stress?c=N&ops=N` — concurrent stress test.
@@ -34,10 +35,19 @@ On myserver, wire each via `set_env_var(app_id, key=..., value='${<db-name>.DATA
 ## Smoke test
 
 ```bash
+# DB connectivity only (fast, ~10ms per chip)
 ./smoke.sh https://your-fqdn
+
+# Write-mode (INSERT/SELECT/DELETE per DB — catches RO-replica / cred-drift / disk-full)
+./smoke.sh https://your-fqdn --write
+
+# Connectivity + service-FQDN smoke in one pass
+./smoke.sh https://your-fqdn --services https://adminer.fqdn https://gitea.fqdn ...
 ```
 
-Exit 0 only when every configured DB returns ok. "Not set" chips are skipped, not failed.
+Exit 0 only when every configured DB returns ok. "Not set" chips are SKIP not FAIL.
+
+The CI workflow at `.github/workflows/e2e-smoke.yml` runs this nightly against the deployed e2e-polyglot fixture in env 14 (team 10 / green server 8).
 
 ## Local development
 

@@ -337,6 +337,82 @@ async function testRedisFamily(label: string, type: string, client: Redis | null
 const testKeyDB     = () => testRedisFamily("KeyDB",     "keydb",     keydbClient,     process.env.KEYDB_URL);
 const testDragonfly = () => testRedisFamily("Dragonfly", "dragonfly", dragonflyClient, process.env.DRAGONFLY_URL);
 
+// ── Write-mode round-trip probes ─────────────────────────────────
+// INSERT → SELECT-back → DELETE per DB. Catches the failure modes a
+// connectivity probe can't see: URL rewrites that silently route to a
+// read-only replica, credential drift, disk-full on a volume, schema
+// privilege loss after a backup/restore. Every probe uses a per-call
+// unique key/id so concurrent CI runs don't collide, and cleans up its
+// own row so the table doesn't grow unbounded.
+async function writeRoundTrip(slug: string): Promise<{ ok: boolean; latencyMs: number; error?: string }> {
+  const t0 = performance.now();
+  const sentinel = `disco-wr-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  try {
+    switch (slug) {
+      case "postgres": case "postgresql": {
+        if (!pgPool) throw new Error("POSTGRES_URL not set");
+        const c = await pgPool.connect();
+        try {
+          await c.query("CREATE TABLE IF NOT EXISTS _wrcheck(k TEXT PRIMARY KEY, v TEXT)");
+          await c.query("INSERT INTO _wrcheck(k,v) VALUES($1,$2)", [sentinel, "ok"]);
+          const r = await c.query("SELECT v FROM _wrcheck WHERE k=$1", [sentinel]);
+          await c.query("DELETE FROM _wrcheck WHERE k=$1", [sentinel]);
+          if (r.rows[0]?.v !== "ok") throw new Error("readback mismatch");
+        } finally { c.release(); }
+        break;
+      }
+      case "mysql": case "mariadb": {
+        const pool = slug === "mysql" ? mysqlPool : mariaPool;
+        if (!pool) throw new Error(`${slug.toUpperCase()}_URL not set`);
+        await pool.query("CREATE TABLE IF NOT EXISTS _wrcheck(k VARCHAR(64) PRIMARY KEY, v VARCHAR(8))");
+        await pool.query("INSERT INTO _wrcheck(k,v) VALUES(?,?)", [sentinel, "ok"]);
+        const [rows] = await pool.query("SELECT v FROM _wrcheck WHERE k=?", [sentinel]) as any;
+        await pool.query("DELETE FROM _wrcheck WHERE k=?", [sentinel]);
+        if (rows[0]?.v !== "ok") throw new Error("readback mismatch");
+        break;
+      }
+      case "mongo": case "mongodb": {
+        if (!mongoClient) throw new Error("MONGO_URL not set");
+        if (!mongoConnected) { await mongoClient.connect(); mongoConnected = true; }
+        const coll = mongoClient.db().collection("_wrcheck");
+        await coll.insertOne({ _id: sentinel as any, v: "ok" });
+        const doc = await coll.findOne({ _id: sentinel as any });
+        await coll.deleteOne({ _id: sentinel as any });
+        if ((doc as any)?.v !== "ok") throw new Error("readback mismatch");
+        break;
+      }
+      case "redis": case "keydb": case "dragonfly": {
+        const client = slug === "redis" ? redisClient : slug === "keydb" ? keydbClient : dragonflyClient;
+        if (!client) throw new Error(`${slug.toUpperCase()}_URL not set`);
+        if (client.status === "wait") await client.connect();
+        await client.set(`_wrcheck:${sentinel}`, "ok", "EX", 30);
+        const v = await client.get(`_wrcheck:${sentinel}`);
+        await client.del(`_wrcheck:${sentinel}`);
+        if (v !== "ok") throw new Error("readback mismatch");
+        break;
+      }
+      case "clickhouse": {
+        if (!chClient) throw new Error("CLICKHOUSE_URL not set");
+        // CH has no temp tables in the HTTP client sense; use Memory engine —
+        // dies with the server, so it's effectively per-process cleanup if we
+        // forget to drop. We drop explicitly anyway.
+        await chClient.command({ query: "CREATE TABLE IF NOT EXISTS _wrcheck (k String, v String) ENGINE = Memory" });
+        await chClient.insert({ table: "_wrcheck", values: [{ k: sentinel, v: "ok" }], format: "JSONEachRow" });
+        const rs = await chClient.query({ query: `SELECT v FROM _wrcheck WHERE k='${sentinel.replace(/'/g, "''")}'`, format: "JSONEachRow" });
+        const rows = await rs.json() as Array<{ v: string }>;
+        await chClient.command({ query: `ALTER TABLE _wrcheck DELETE WHERE k='${sentinel.replace(/'/g, "''")}'` });
+        if (rows[0]?.v !== "ok") throw new Error("readback mismatch");
+        break;
+      }
+      default:
+        throw new Error(`write-mode not implemented for ${slug}`);
+    }
+    return { ok: true, latencyMs: Math.round(performance.now() - t0) };
+  } catch (e: any) {
+    return { ok: false, latencyMs: Math.round(performance.now() - t0), error: String(e.message || e).slice(0, 200) };
+  }
+}
+
 // ── Helpers ──────────────────────────────────────────────────────
 function avg(arr: number[]) { return arr.reduce((a, b) => a + b, 0) / arr.length; }
 function round(n: number) { return Math.round(n * 100) / 100; }
@@ -565,8 +641,15 @@ const server = Bun.serve({
 
     // Per-DB health probe — exit-code friendly for smoke.sh / CI gating.
     // Returns 200 on connected, 503 on error so curl --fail trips correctly.
+    //
+    // Default (?write=0): connect + version()/INFO only. Cheap, ~10ms.
+    // ?write=1: INSERT a row, SELECT it back, DELETE it. Catches URL-shape
+    //   regressions a SELECT-1 probe misses (e.g. the ClickHouse scheme
+    //   rewrite class — connectivity would pass even if the URL pointed at
+    //   a read-only replica). Slower (~50-200ms per DB).
     if (url.pathname.startsWith("/health/")) {
       const slug = url.pathname.slice("/health/".length).toLowerCase();
+      const wantWrite = url.searchParams.get("write") === "1";
       const probeMap: Record<string, () => Promise<DBResult>> = {
         postgres:   testPostgres,   postgresql: testPostgres,
         mysql:      testMySQL,
@@ -580,15 +663,24 @@ const server = Bun.serve({
       const probe = probeMap[slug];
       if (!probe) return Response.json({ error: `unknown db type: ${slug}`, available: Object.keys(probeMap) }, { status: 404 });
       const r = await probe();
+      // If write-mode requested AND the connect probe passed, exercise the
+      // round-trip. A connect-pass + write-fail surfaces as a 503 so CI gates
+      // catch credential drift / RO-replica routing / disk-full silently.
+      let write: { ok: boolean; latencyMs: number; error?: string } | undefined;
+      if (wantWrite && r.status === "connected") {
+        write = await writeRoundTrip(slug);
+      }
+      const overallOk = r.status === "connected" && (!wantWrite || (write?.ok ?? false));
       return Response.json({
-        ok: r.status === "connected",
+        ok: overallOk,
         type: r.type,
         latencyMs: r.latency_ms,
+        write,
         probedAt: new Date().toISOString(),
         target: r.host,
         details: r.details,
         error: r.error,
-      }, { status: r.status === "connected" ? 200 : 503 });
+      }, { status: overallOk ? 200 : 503 });
     }
 
     // API: connectivity test
