@@ -264,12 +264,26 @@ async function testMongo(): Promise<DBResult> {
 }
 
 // ── ClickHouse client ────────────────────────────────────────────
-const chClient = process.env.CLICKHOUSE_URL
-  ? createClickHouseClient({ url: process.env.CLICKHOUSE_URL, request_timeout: 5000 })
-  : null;
+// myserver's resolved ${e2e-clickhouse.DATABASE_URL} points at the native
+// TCP port (clickhouse://user:pass@host:9000/db). The npm @clickhouse/client
+// drives the HTTP interface, so normalize the scheme + port. Set
+// CLICKHOUSE_HTTP_URL explicitly to skip this rewrite when running against
+// a non-myserver ClickHouse that already exposes only HTTP.
+function clickhouseHttpURL(): string | undefined {
+  const direct = process.env.CLICKHOUSE_HTTP_URL?.trim();
+  if (direct) return direct;
+  const raw = process.env.CLICKHOUSE_URL?.trim();
+  if (!raw) return undefined;
+  return raw
+    .replace(/^clickhouse:\/\//, "http://")
+    .replace(/:9000(\/|$)/, ":8123$1");
+}
+const chURL = clickhouseHttpURL();
+const chClient = chURL ? createClickHouseClient({ url: chURL, request_timeout: 5000 }) : null;
 
 async function testClickHouse(): Promise<DBResult> {
   if (!chClient) return { name: "ClickHouse", type: "clickhouse", host: "-", status: "error", latency_ms: 0, error: "CLICKHOUSE_URL not set" };
+  const hostDisplay = chURL?.replace(/\/\/.*@/, "//***@") || "";
   const start = performance.now();
   try {
     const rs = await chClient.query({ query: "SELECT version() AS v, currentDatabase() AS db, hostName() AS host", format: "JSONEachRow" });
@@ -277,12 +291,12 @@ async function testClickHouse(): Promise<DBResult> {
     const r = rows[0] || { v: "unknown", db: "?", host: "?" };
     return {
       name: "ClickHouse", type: "clickhouse",
-      host: process.env.CLICKHOUSE_URL?.replace(/\/\/.*@/, "//***@") || "",
+      host: hostDisplay,
       status: "connected", latency_ms: Math.round(performance.now() - start),
       details: `ClickHouse ${r.v} | db=${r.db} | host=${r.host}`,
     };
   } catch (e: any) {
-    return { name: "ClickHouse", type: "clickhouse", host: process.env.CLICKHOUSE_URL?.replace(/\/\/.*@/, "//***@") || "", status: "error", latency_ms: Math.round(performance.now() - start), error: e.message?.replace(/\/\/[^@]*@/g, "//***@").replace(/password[= ][^\s;,)]+/gi, "password=***") };
+    return { name: "ClickHouse", type: "clickhouse", host: hostDisplay, status: "error", latency_ms: Math.round(performance.now() - start), error: e.message?.replace(/\/\/[^@]*@/g, "//***@").replace(/password[= ][^\s;,)]+/gi, "password=***") };
   }
 }
 
