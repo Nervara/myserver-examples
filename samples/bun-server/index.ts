@@ -1,6 +1,8 @@
 import pg from "pg";
 import mysql from "mysql2/promise";
 import Redis from "ioredis";
+import { MongoClient } from "mongodb";
+import { createClient as createClickHouseClient } from "@clickhouse/client";
 import { Database } from "bun:sqlite";
 import { existsSync, mkdirSync } from "fs";
 import { dirname } from "path";
@@ -229,6 +231,98 @@ async function testRedis(): Promise<DBResult> {
   }
 }
 
+// ── MongoDB client ───────────────────────────────────────────────
+// `family: 4` forces IPv4 — Bun's getaddrinfo otherwise tries AAAA first
+// on Docker bridge networks where MongoDB only listens on IPv4 and stalls
+// for the full 30s socket timeout. `serverSelectionTimeoutMS: 3000` makes
+// a broken DB fail fast so the dashboard's other chips stay responsive.
+const mongoClient = process.env.MONGO_URL
+  ? new MongoClient(process.env.MONGO_URL, {
+      serverSelectionTimeoutMS: 3000,
+      connectTimeoutMS: 5000,
+      family: 4,
+    })
+  : null;
+let mongoConnected = false;
+
+async function testMongo(): Promise<DBResult> {
+  if (!mongoClient) return { name: "MongoDB", type: "mongodb", host: "-", status: "error", latency_ms: 0, error: "MONGO_URL not set" };
+  const start = performance.now();
+  try {
+    if (!mongoConnected) { await mongoClient.connect(); mongoConnected = true; }
+    const admin = mongoClient.db().admin();
+    const info = await admin.serverStatus();
+    return {
+      name: "MongoDB", type: "mongodb",
+      host: process.env.MONGO_URL?.replace(/\/\/.*@/, "//***@") || "",
+      status: "connected", latency_ms: Math.round(performance.now() - start),
+      details: `MongoDB ${info.version} | host=${info.host} | uptime=${Math.round(info.uptime || 0)}s`,
+    };
+  } catch (e: any) {
+    return { name: "MongoDB", type: "mongodb", host: process.env.MONGO_URL?.replace(/\/\/.*@/, "//***@") || "", status: "error", latency_ms: Math.round(performance.now() - start), error: e.message?.replace(/\/\/[^@]*@/g, "//***@").replace(/password[= ][^\s;,)]+/gi, "password=***") };
+  }
+}
+
+// ── ClickHouse client ────────────────────────────────────────────
+const chClient = process.env.CLICKHOUSE_URL
+  ? createClickHouseClient({ url: process.env.CLICKHOUSE_URL, request_timeout: 5000 })
+  : null;
+
+async function testClickHouse(): Promise<DBResult> {
+  if (!chClient) return { name: "ClickHouse", type: "clickhouse", host: "-", status: "error", latency_ms: 0, error: "CLICKHOUSE_URL not set" };
+  const start = performance.now();
+  try {
+    const rs = await chClient.query({ query: "SELECT version() AS v, currentDatabase() AS db, hostName() AS host", format: "JSONEachRow" });
+    const rows = await rs.json() as Array<{ v: string; db: string; host: string }>;
+    const r = rows[0] || { v: "unknown", db: "?", host: "?" };
+    return {
+      name: "ClickHouse", type: "clickhouse",
+      host: process.env.CLICKHOUSE_URL?.replace(/\/\/.*@/, "//***@") || "",
+      status: "connected", latency_ms: Math.round(performance.now() - start),
+      details: `ClickHouse ${r.v} | db=${r.db} | host=${r.host}`,
+    };
+  } catch (e: any) {
+    return { name: "ClickHouse", type: "clickhouse", host: process.env.CLICKHOUSE_URL?.replace(/\/\/.*@/, "//***@") || "", status: "error", latency_ms: Math.round(performance.now() - start), error: e.message?.replace(/\/\/[^@]*@/g, "//***@").replace(/password[= ][^\s;,)]+/gi, "password=***") };
+  }
+}
+
+// ── KeyDB + Dragonfly (both speak Redis wire protocol, reuse ioredis) ──
+const keydbClient = process.env.KEYDB_URL
+  ? new Redis(process.env.KEYDB_URL, { maxRetriesPerRequest: 1, connectTimeout: 5000, lazyConnect: true })
+  : null;
+const dragonflyClient = process.env.DRAGONFLY_URL
+  ? new Redis(process.env.DRAGONFLY_URL, { maxRetriesPerRequest: 1, connectTimeout: 5000, lazyConnect: true })
+  : null;
+
+async function testRedisFamily(label: string, type: string, client: Redis | null, url: string | undefined): Promise<DBResult> {
+  if (!client) return { name: label, type, host: "-", status: "error", latency_ms: 0, error: `${type.toUpperCase()}_URL not set` };
+  const start = performance.now();
+  try {
+    if (client.status === "wait") await client.connect();
+    const info = await client.info("server");
+    // KeyDB reports itself as redis_version + keydb_version; Dragonfly reports redis_version + dragonfly_version
+    const version = info.match(/redis_version:(.+)/)?.[1]?.trim() || "unknown";
+    const flavor = info.match(/keydb_version:(.+)/)?.[1]?.trim()
+                || info.match(/dragonfly_version:(.+)/)?.[1]?.trim()
+                || "";
+    const key = `disco:ping:${Date.now()}`;
+    await client.set(key, "pong", "EX", 10);
+    await client.get(key);
+    await client.del(key);
+    return {
+      name: label, type,
+      host: url?.replace(/:.*@/, ":***@") || "",
+      status: "connected", latency_ms: Math.round(performance.now() - start),
+      details: `${label} ${flavor || version} (wire=redis ${version})`,
+    };
+  } catch (e: any) {
+    return { name: label, type, host: url?.replace(/:.*@/, ":***@") || "", status: "error", latency_ms: Math.round(performance.now() - start), error: e.message?.replace(/\/\/[^@]*@/g, "//***@").replace(/password[= ][^\s;,)]+/gi, "password=***") };
+  }
+}
+
+const testKeyDB     = () => testRedisFamily("KeyDB",     "keydb",     keydbClient,     process.env.KEYDB_URL);
+const testDragonfly = () => testRedisFamily("Dragonfly", "dragonfly", dragonflyClient, process.env.DRAGONFLY_URL);
+
 // ── Helpers ──────────────────────────────────────────────────────
 function avg(arr: number[]) { return arr.reduce((a, b) => a + b, 0) / arr.length; }
 function round(n: number) { return Math.round(n * 100) / 100; }
@@ -455,9 +549,42 @@ const server = Bun.serve({
 
     if (url.pathname === "/health") return new Response("OK");
 
+    // Per-DB health probe — exit-code friendly for smoke.sh / CI gating.
+    // Returns 200 on connected, 503 on error so curl --fail trips correctly.
+    if (url.pathname.startsWith("/health/")) {
+      const slug = url.pathname.slice("/health/".length).toLowerCase();
+      const probeMap: Record<string, () => Promise<DBResult>> = {
+        postgres:   testPostgres,   postgresql: testPostgres,
+        mysql:      testMySQL,
+        mariadb:    testMariaDB,
+        mongo:      testMongo,      mongodb:    testMongo,
+        redis:      testRedis,
+        clickhouse: testClickHouse,
+        keydb:      testKeyDB,
+        dragonfly:  testDragonfly,
+      };
+      const probe = probeMap[slug];
+      if (!probe) return Response.json({ error: `unknown db type: ${slug}`, available: Object.keys(probeMap) }, { status: 404 });
+      const r = await probe();
+      return Response.json({
+        ok: r.status === "connected",
+        type: r.type,
+        latencyMs: r.latency_ms,
+        probedAt: new Date().toISOString(),
+        target: r.host,
+        details: r.details,
+        error: r.error,
+      }, { status: r.status === "connected" ? 200 : 503 });
+    }
+
     // API: connectivity test
     if (url.pathname === "/api/test") {
-      const results = await Promise.all([testPostgres(), testMySQL(), testMariaDB(), testRedis(), Promise.resolve(testSqlite())]);
+      const results = await Promise.all([
+        testPostgres(), testMySQL(), testMariaDB(),
+        testMongo(), testRedis(), testClickHouse(),
+        testKeyDB(), testDragonfly(),
+        Promise.resolve(testSqlite()),
+      ]);
       return Response.json({
         timestamp: new Date().toISOString(),
         runtime: `Bun ${Bun.version}`,
@@ -577,7 +704,11 @@ function renderDashboard(): string {
     .card-pg { border-left-color: #4F7BEF; }
     .card-mysql { border-left-color: #00A7D0; }
     .card-mariadb { border-left-color: #C4784F; }
+    .card-mongo { border-left-color: #00684A; }
     .card-redis { border-left-color: #E84D3D; }
+    .card-clickhouse { border-left-color: #FFCC02; }
+    .card-keydb { border-left-color: #319D7E; }
+    .card-dragonfly { border-left-color: #DC382D; }
     .card-sqlite { border-left-color: #003B57; }
     .btn { display: inline-flex; align-items: center; justify-content: center; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border); background: var(--btn-bg); color: var(--text); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s ease; font-family: inherit; }
     .btn:hover { background: var(--btn-hover); border-color: var(--text-muted); }
@@ -688,7 +819,12 @@ function renderDashboard(): string {
         <div class="text-secondary text-sm">Auto-testing database connections...</div>
         <button class="btn btn-sm" onclick="testConnections()">Retest</button>
       </div>
-      <div id="cards" class="grid-4">
+      <div id="cards" class="grid-3">
+        <div class="card skeleton" style="height:160px"></div>
+        <div class="card skeleton" style="height:160px"></div>
+        <div class="card skeleton" style="height:160px"></div>
+        <div class="card skeleton" style="height:160px"></div>
+        <div class="card skeleton" style="height:160px"></div>
         <div class="card skeleton" style="height:160px"></div>
         <div class="card skeleton" style="height:160px"></div>
         <div class="card skeleton" style="height:160px"></div>
@@ -769,8 +905,8 @@ function renderDashboard(): string {
   <div style="height:40px"></div>
 
   <script>
-    var DB_COLORS = { 'PostgreSQL': '#4F7BEF', 'MySQL': '#00A7D0', 'MariaDB': '#C4784F', 'Redis': '#E84D3D', 'SQLite (DATABASE_URL)': '#003B57', 'SQLite (local)': '#6b7280', 'SQLite': '#003B57' };
-    var DB_CLASS = { 'PostgreSQL': 'card-pg', 'MySQL': 'card-mysql', 'MariaDB': 'card-mariadb', 'Redis': 'card-redis', 'SQLite (DATABASE_URL)': 'card-sqlite', 'SQLite (local)': 'card-sqlite', 'SQLite': 'card-sqlite' };
+    var DB_COLORS = { 'PostgreSQL': '#4F7BEF', 'MySQL': '#00A7D0', 'MariaDB': '#C4784F', 'MongoDB': '#00684A', 'Redis': '#E84D3D', 'ClickHouse': '#FFCC02', 'KeyDB': '#319D7E', 'Dragonfly': '#DC382D', 'SQLite (DATABASE_URL)': '#003B57', 'SQLite (local)': '#6b7280', 'SQLite': '#003B57' };
+    var DB_CLASS = { 'PostgreSQL': 'card-pg', 'MySQL': 'card-mysql', 'MariaDB': 'card-mariadb', 'MongoDB': 'card-mongo', 'Redis': 'card-redis', 'ClickHouse': 'card-clickhouse', 'KeyDB': 'card-keydb', 'Dragonfly': 'card-dragonfly', 'SQLite (DATABASE_URL)': 'card-sqlite', 'SQLite (local)': 'card-sqlite', 'SQLite': 'card-sqlite' };
     var benchChart = null;
     var stressChart = null;
     var historyChart = null;
