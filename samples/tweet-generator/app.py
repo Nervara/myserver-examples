@@ -135,7 +135,11 @@ def generate_tweet() -> str:
     }
     payload = {
         "model": DEEPSEEK_MODEL,
-        "max_tokens": 60,
+        "max_tokens": 120,
+        # DeepSeek-V4-Pro is a reasoning model; without this it spends the whole
+        # token budget on a `thinking` block and returns no text. Disable it so
+        # we get the tweet directly.
+        "thinking": {"type": "disabled"},
         "system": "You are a witty tweeter. Write ONE short, fun tweet under 200 characters. Output only the tweet text, no quotes.",
         "messages": [{"role": "user", "content": "Write a tweet."}],
     }
