@@ -1,0 +1,35 @@
+services:
+  # `web` is built from a NESTED build context (app/web), mirroring the
+  # docker/awesome-compose layout (e.g. aspnetapp's `build: app/aspnetapp`).
+  # This only works when the source is on disk — i.e. deployed from a Git
+  # repo (base directory = /samples/compose-build-context), NOT as inline
+  # paste-and-deploy compose. Inline compose writes only the YAML and has
+  # no source to build, so a local `build:` context fails with
+  # "unable to prepare context: path .../app/web not found".
+  web:
+    build: app/web
+    ports:
+      - "80:80"
+    environment:
+      - CACHE_URL=redis://cache:6379
+    depends_on:
+      cache:
+        condition: service_healthy
+    networks:
+      - app
+
+  # `cache` is a PRE-BUILT image sibling — pulled, not built. A real
+  # compose mixes both (the aspnetapp that broke had a built `web` + a
+  # pulled `db`), so the sample exercises both code paths in one stack.
+  cache:
+    image: redis:alpine
+    networks:
+      - app
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+networks:
+  app:
