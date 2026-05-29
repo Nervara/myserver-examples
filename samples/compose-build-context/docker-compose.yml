@@ -8,8 +8,14 @@ services:
   # "unable to prepare context: path .../app/web not found".
   web:
     build: app/web
-    ports:
-      - "80:80"
+    # Container-only port — NOT a host binding. On myserver the proxy
+    # (Caddy) owns host :80/:443 and routes to this service via the
+    # compose network alias, so publishing `80:80` would collide with
+    # the proxy ("Bind for :::80 failed: port is already allocated").
+    # `ports_exposes=80` on the app tells Caddy which container port to
+    # reverse-proxy to. (Run standalone? add `ports: ["8080:80"]` back.)
+    expose:
+      - "80"
     environment:
       - CACHE_URL=redis://cache:6379
     depends_on:
