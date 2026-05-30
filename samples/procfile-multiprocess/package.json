@@ -1,0 +1,8 @@
+{
+  "name": "procfile-multiprocess",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Demonstrates myserver Procfile auto-detect: web + worker from one repo/build.",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}
