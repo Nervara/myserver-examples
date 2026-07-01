@@ -5,6 +5,7 @@ const PORT = process.env.PORT || 3000;
 const PG_URL = process.env.PG_URL || '';
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const SUPABASE_DB_URL = process.env.SUPABASE_DB_URL || '';
 const SEED_BATCH_SIZE = parseInt(process.env.SEED_BATCH_SIZE || '100', 10);
 const MAX_ROWS = parseInt(process.env.MAX_ROWS || '100000', 10);
 const RUN_ID = process.env.RUN_ID || `e2e-br-matrix-137-${new Date().toISOString().replace(/[-:T]/g, '').slice(0, 15)}`;
@@ -12,6 +13,10 @@ const RUN_ID = process.env.RUN_ID || `e2e-br-matrix-137-${new Date().toISOString
 let pgPool = null;
 if (PG_URL) {
   pgPool = new Pool({ connectionString: PG_URL, max: 5 });
+}
+let supabaseDbPool = null;
+if (SUPABASE_DB_URL) {
+  supabaseDbPool = new Pool({ connectionString: SUPABASE_DB_URL, max: 3 });
 }
 
 function supabaseHeaders() {
@@ -47,6 +52,14 @@ async function healthz() {
       result.pg = `error: ${e.message.slice(0, 100)}`;
     }
   }
+  if (SUPABASE_DB_URL) {
+    try {
+      const r = await supabaseDbPool.query('SELECT 1 as ok');
+      result.supabase_db = r.rows[0]?.ok === 1 ? 'connected' : 'error';
+    } catch (e) {
+      result.supabase_db = `error: ${e.message.slice(0, 100)}`;
+    }
+  }
   if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
     try {
       const r = await supabaseFetch('/br_matrix_supabase?select=id&limit=1');
@@ -62,7 +75,7 @@ async function seedRows(n) {
   n = Math.min(Math.max(1, n), MAX_ROWS);
   const results = { requested: n, pg_inserted: 0, supabase_inserted: 0, errors: [] };
 
-  // Ensure tables exist
+  // Ensure tables exist (standalone PG - direct; Supabase - via DB URL for CREATE, REST API for data)
   if (pgPool) {
     await pgPool.query(`
       CREATE TABLE IF NOT EXISTS br_matrix_pg (
@@ -75,10 +88,20 @@ async function seedRows(n) {
     `);
   }
 
-  if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+  if (supabaseDbPool) {
     try {
-      
-    } catch (e) { /* table may already exist */ }
+      await supabaseDbPool.query(`
+        CREATE TABLE IF NOT EXISTS br_matrix_supabase (
+          id SERIAL PRIMARY KEY,
+          run_id TEXT NOT NULL,
+          seq INTEGER NOT NULL,
+          value TEXT NOT NULL,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        )
+      `);
+    } catch (e) {
+      results.errors.push(`supabase table create: ${e.message.slice(0, 100)}`);
+    }
   }
 
   // Seed PG in batches
