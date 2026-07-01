@@ -77,7 +77,7 @@ async function seedRows(n) {
 
   if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
     try {
-      await supabaseFetch('/rpc/create_br_matrix_table', { method: 'POST' });
+      
     } catch (e) { /* table may already exist */ }
   }
 
